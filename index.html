@@ -425,13 +425,97 @@
             font-size: 1.1rem;
         }
         
-        .fullscreen-image {
+        .fullscreen-controls {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+            margin-right: 10px;
+        }
+        
+        .fullscreen-control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .fullscreen-control-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.95);
+        }
+        
+        .fullscreen-image-container {
             flex: 1;
-            object-fit: contain;
+            position: relative;
+            overflow: hidden;
+            margin: 20px;
+            border-radius: 12px;
+            background: #000;
+        }
+        
+        .fullscreen-image {
             width: 100%;
-            height: calc(100vh - 84px);
-            padding: 20px;
+            height: 100%;
+            object-fit: contain;
             transition: transform 0.3s ease;
+        }
+        
+        .fullscreen-slider-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+        }
+        
+        .fullscreen-slider-container.active {
+            display: block;
+        }
+        
+        .fullscreen-slider-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            background: white;
+            transform: translateX(-50%);
+            z-index: 10;
+            cursor: ew-resize;
+            touch-action: none;
+        }
+        
+        .fullscreen-slider-handle::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+        }
+        
+        .fullscreen-slider-handle::after {
+            content: "↔";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #333;
+            font-weight: bold;
         }
         
         .loading {
@@ -543,6 +627,124 @@
             font-weight: 500;
         }
         
+        /* Export options modal */
+        .export-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .export-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .export-content {
+            background: #1e1e1e;
+            border-radius: 16px;
+            padding: 25px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+        
+        .export-title {
+            margin: 0 0 20px 0;
+            color: white;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+        
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .export-option {
+            padding: 16px;
+            background: #333;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .export-option:active {
+            background: #444;
+            transform: scale(0.98);
+        }
+        
+        .export-option.selected {
+            border-color: #64b5f6;
+            background: rgba(100, 181, 246, 0.1);
+        }
+        
+        .export-size-info {
+            color: #aaa;
+            font-size: 0.85rem;
+            text-align: center;
+            margin: 10px 0 20px 0;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .export-cancel {
+            flex: 1;
+            padding: 14px;
+            background: #333;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .export-cancel:active {
+            background: #444;
+            transform: scale(0.98);
+        }
+        
+        .export-download {
+            flex: 2;
+            padding: 14px;
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .export-download:active {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+        
         @media (max-width: 768px) {
             .header {
                 margin-bottom: 15px;
@@ -581,6 +783,19 @@
             .mode-button {
                 min-width: 120px;
             }
+            
+            .fullscreen-header {
+                padding: 15px;
+                padding-top: max(15px, env(safe-area-inset-top));
+            }
+            
+            .fullscreen-controls {
+                gap: 5px;
+            }
+            
+            .export-content {
+                padding: 20px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -605,13 +820,12 @@
                 flex-direction: column;
             }
             
-            .fullscreen-header {
-                padding: 15px;
-                padding-top: max(15px, env(safe-area-inset-top));
+            .export-buttons {
+                flex-direction: column;
             }
             
-            .fullscreen-image {
-                padding: 10px;
+            .export-cancel, .export-download {
+                width: 100%;
             }
         }
     </style>
@@ -625,6 +839,38 @@
     <div class="loading" id="loading">
         <div class="spinner"></div>
         <div class="loading-text" id="loadingText">Processing image...</div>
+    </div>
+    
+    <!-- Export Modal -->
+    <div class="export-modal" id="exportModal">
+        <div class="export-content">
+            <h3 class="export-title">Export Options</h3>
+            <div class="export-options">
+                <div class="export-option selected" onclick="selectExportSize('original')">
+                    <span>Original Size</span>
+                    <span id="originalSizeDisplay">-</span>
+                </div>
+                <div class="export-option" onclick="selectExportSize('large')">
+                    <span>Large (1920px)</span>
+                    <span>1920×-</span>
+                </div>
+                <div class="export-option" onclick="selectExportSize('medium')">
+                    <span>Medium (1280px)</span>
+                    <span>1280×-</span>
+                </div>
+                <div class="export-option" onclick="selectExportSize('small')">
+                    <span>Small (800px)</span>
+                    <span>800×-</span>
+                </div>
+            </div>
+            <div class="export-size-info" id="exportSizeInfo">
+                Select an export size above
+            </div>
+            <div class="export-buttons">
+                <button class="export-cancel" onclick="closeExportModal()">Cancel</button>
+                <button class="export-download" onclick="downloadImage()">Download Image</button>
+            </div>
+        </div>
     </div>
     
     <div class="main-container">
@@ -708,11 +954,24 @@
                 <div class="fullscreen-header">
                     <button class="fullscreen-close" onclick="exitFullscreen()">✕</button>
                     <div class="fullscreen-title">Full-Screen Preview</div>
+                    <div class="fullscreen-controls">
+                        <button class="fullscreen-control-btn" id="fullscreenToggle" onclick="toggleFullscreenSlider()">⇄</button>
+                    </div>
                 </div>
-                <img id="fullscreen-image" class="fullscreen-image" alt="Corrected Image">
+                <div class="fullscreen-image-container">
+                    <!-- Single image view -->
+                    <img id="fullscreen-image" class="fullscreen-image" alt="Corrected Image">
+                    
+                    <!-- Slider view -->
+                    <div class="fullscreen-slider-container" id="fullscreenSlider">
+                        <img id="fullscreen-before" class="fullscreen-image" alt="Original">
+                        <img id="fullscreen-after" class="fullscreen-image" alt="Corrected" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
+                        <div class="fullscreen-slider-handle" id="fullscreenSliderHandle"></div>
+                    </div>
+                </div>
             </div>
             
-            <button class="button secondary" onclick="saveImage()">
+            <button class="button secondary" onclick="openExportModal()">
                 <span class="button-icon">💾</span>
                 Save Corrected Photo
             </button>
@@ -785,6 +1044,7 @@
 
     <script>
         let originalImage = null;
+        let originalImageData = null; // Store original image data
         let originalCanvas = document.getElementById('originalCanvas');
         let outputCanvas = document.getElementById('outputCanvas');
         let originalCtx = originalCanvas.getContext('2d');
@@ -792,6 +1052,8 @@
         let currentMode = 'side';
         let isProcessing = false;
         let zoomLevel = 1;
+        let isFullscreenSlider = false;
+        let exportSize = 'original';
         
         // Initialize UI
         function initUI() {
@@ -836,11 +1098,9 @@
                 updateSliderDisplay(sliderId, slider.value);
             });
             
-            // Setup comparison slider
+            // Setup comparison sliders
             setupComparisonSlider();
-            
-            // Setup full-screen gestures
-            setupFullscreenGestures();
+            setupFullscreenSlider();
             
             // Disable auto-detect button initially
             document.getElementById('autoDetectBtn').disabled = true;
@@ -912,91 +1172,82 @@
             }
         }
         
-        function setupFullscreenGestures() {
-            const fullscreenImage = document.getElementById('fullscreen-image');
-            let initialPinchDistance = null;
-            let initialZoom = 1;
+        function setupFullscreenSlider() {
+            const handle = document.getElementById('fullscreenSliderHandle');
+            const fullscreenAfter = document.getElementById('fullscreen-after');
+            let isSliding = false;
             
-            // Double-tap to toggle zoom
-            let lastTap = 0;
-            fullscreenImage.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 300 && tapLength > 0) {
-                    // Double tap detected
-                    if (zoomLevel === 1) {
-                        zoomLevel = 2;
-                    } else {
-                        zoomLevel = 1;
-                    }
-                    updateFullscreenZoom();
+            // Mouse events
+            handle.addEventListener('mousedown', startSliding);
+            document.addEventListener('mousemove', slide);
+            document.addEventListener('mouseup', stopSliding);
+            
+            // Touch events for mobile
+            handle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startSliding(e);
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (!isSliding) return;
+                e.preventDefault();
+                slide(e);
+            }, { passive: false });
+            
+            document.addEventListener('touchend', stopSliding);
+            
+            function startSliding(e) {
+                isSliding = true;
+                handle.style.transition = 'none';
+                if (e.type === 'touchstart') {
                     e.preventDefault();
                 }
-                lastTap = currentTime;
-            });
+            }
             
-            // Pinch to zoom
-            fullscreenImage.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    initialPinchDistance = getDistance(
-                        e.touches[0].clientX, e.touches[0].clientY,
-                        e.touches[1].clientX, e.touches[1].clientY
-                    );
-                    initialZoom = zoomLevel;
+            function slide(e) {
+                if (!isSliding) return;
+                
+                const container = document.getElementById('fullscreenSlider');
+                const rect = container.getBoundingClientRect();
+                
+                let clientX;
+                if (e.type === 'touchmove') {
+                    clientX = e.touches[0].clientX;
+                } else {
+                    clientX = e.clientX;
                 }
-            });
+                
+                const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+                const percent = (x / rect.width) * 100;
+                
+                fullscreenAfter.style.clipPath = `polygon(0 0, ${percent}% 0, ${percent}% 100%, 0 100%)`;
+                handle.style.left = `${percent}%`;
+            }
             
-            fullscreenImage.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2 && initialPinchDistance !== null) {
-                    e.preventDefault();
-                    const currentDistance = getDistance(
-                        e.touches[0].clientX, e.touches[0].clientY,
-                        e.touches[1].clientX, e.touches[1].clientY
-                    );
-                    
-                    const scale = currentDistance / initialPinchDistance;
-                    zoomLevel = Math.max(1, Math.min(initialZoom * scale, 3));
-                    updateFullscreenZoom();
-                }
-            });
-            
-            fullscreenImage.addEventListener('touchend', () => {
-                initialPinchDistance = null;
-            });
-            
-            // Click outside image to exit fullscreen
-            document.getElementById('fullscreenView').addEventListener('click', (e) => {
-                if (e.target === e.currentTarget) {
-                    exitFullscreen();
-                }
-            });
-            
-            // Swipe down to exit fullscreen
-            let touchStartY = 0;
-            fullscreenImage.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-            });
-            
-            fullscreenImage.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 1 && zoomLevel === 1) {
-                    const touchEndY = e.touches[0].clientY;
-                    const deltaY = touchEndY - touchStartY;
-                    
-                    // Swipe down more than 100px to exit
-                    if (deltaY > 100) {
-                        exitFullscreen();
-                    }
-                }
-            });
+            function stopSliding() {
+                isSliding = false;
+                handle.style.transition = 'left 0.2s ease';
+            }
         }
         
-        function getDistance(x1, y1, x2, y2) {
-            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        }
-        
-        function updateFullscreenZoom() {
-            const fullscreenImage = document.getElementById('fullscreen-image');
-            fullscreenImage.style.transform = `scale(${zoomLevel})`;
+        function toggleFullscreenSlider() {
+            isFullscreenSlider = !isFullscreenSlider;
+            const toggleBtn = document.getElementById('fullscreenToggle');
+            
+            if (isFullscreenSlider) {
+                // Show slider
+                document.getElementById('fullscreenSlider').classList.add('active');
+                document.getElementById('fullscreen-image').style.display = 'none';
+                toggleBtn.textContent = '🖼️';
+                
+                // Update slider images
+                updateFullscreenView();
+            } else {
+                // Show single image
+                document.getElementById('fullscreenSlider').classList.remove('active');
+                document.getElementById('fullscreen-image').style.display = 'block';
+                toggleBtn.textContent = '⇄';
+            }
         }
         
         function updateSliderDisplay(sliderId, value) {
@@ -1040,7 +1291,6 @@
         function exitFullscreen() {
             // Reset zoom when exiting
             zoomLevel = 1;
-            updateFullscreenZoom();
             
             // Return to side-by-side view
             switchMode('side');
@@ -1048,7 +1298,12 @@
         
         function updateFullscreenView() {
             const fullscreenImage = document.getElementById('fullscreen-image');
+            const fullscreenBefore = document.getElementById('fullscreen-before');
+            const fullscreenAfter = document.getElementById('fullscreen-after');
+            
             fullscreenImage.src = outputCanvas.toDataURL();
+            fullscreenBefore.src = originalCanvas.toDataURL();
+            fullscreenAfter.src = outputCanvas.toDataURL();
         }
         
         function handleImageUpload(e) {
@@ -1067,6 +1322,14 @@
             reader.onload = function(event) {
                 originalImage = new Image();
                 originalImage.onload = function() {
+                    // Store original image data
+                    originalImageData = {
+                        src: event.target.result,
+                        width: originalImage.width,
+                        height: originalImage.height,
+                        file: file
+                    };
+                    
                     processImageLoad();
                     hideLoading();
                 };
@@ -1080,7 +1343,7 @@
         }
         
         function processImageLoad() {
-            // Set canvas dimensions (optimized for mobile)
+            // Set canvas dimensions (optimized for mobile display)
             const maxDimension = Math.min(800, Math.min(window.innerWidth, window.innerHeight) - 100);
             const scale = Math.min(
                 maxDimension / originalImage.width,
@@ -1090,7 +1353,7 @@
             originalCanvas.width = outputCanvas.width = Math.floor(originalImage.width * scale);
             originalCanvas.height = outputCanvas.height = Math.floor(originalImage.height * scale);
             
-            // Draw original image
+            // Draw original image to canvas
             originalCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
             outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
             
@@ -1103,6 +1366,9 @@
             // Update upload area text
             document.querySelector('.upload-text').textContent = 'Image loaded! Tap Auto-Detect to fix';
             document.querySelector('.upload-icon').textContent = '✅';
+            
+            // Update export modal with original size
+            updateExportSizeDisplay();
             
             // Try auto-detection after a short delay
             setTimeout(() => {
@@ -1386,86 +1652,269 @@
             }
         }
         
-        function saveImage() {
+        function openExportModal() {
             if (!originalImage) {
                 alert('Please upload and process an image first');
                 return;
             }
             
-            // Create a temporary link
-            const link = document.createElement('a');
-            link.download = `ca-fixed-${Date.now()}.png`;
-            link.href = outputCanvas.toDataURL('image/png');
+            document.getElementById('exportModal').classList.add('active');
+        }
+        
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.remove('active');
+        }
+        
+        function selectExportSize(size) {
+            exportSize = size;
             
-            // For iOS devices
-            if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
-                const newWindow = window.open();
-                newWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Save Image</title>
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <style>
-                            body { 
-                                font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-                                padding: 20px; 
-                                text-align: center; 
-                                background: #f5f5f5;
-                            }
-                            img { 
-                                max-width: 100%; 
-                                height: auto; 
-                                border-radius: 10px;
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                                margin: 20px 0;
-                            }
-                            .instructions { 
-                                background: white; 
-                                padding: 15px; 
-                                border-radius: 10px; 
-                                margin: 20px 0;
-                                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                            }
-                            button { 
-                                background: #007AFF; 
-                                color: white; 
-                                border: none; 
-                                padding: 12px 24px; 
-                                border-radius: 8px; 
-                                font-size: 16px; 
-                                margin: 10px; 
-                                cursor: pointer;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <h2>Save Corrected Image</h2>
-                        <img src="${link.href}" alt="Corrected Image">
-                        <div class="instructions">
-                            <p><strong>To save:</strong></p>
-                            <p>1. Tap and hold the image above</p>
-                            <p>2. Select "Save Image" from the menu</p>
-                        </div>
-                        <button onclick="window.close()">Close</button>
-                    </body>
-                    </html>
-                `);
-                newWindow.document.close();
-            } 
-            // For Android and desktop
-            else {
-                // Create a temporary click event
-                const event = new MouseEvent('click', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true
-                });
-                link.dispatchEvent(event);
-                
-                // Show a success message
-                alert('Image saved! Check your downloads folder.');
+            // Update UI
+            document.querySelectorAll('.export-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Update size info
+            updateExportSizeInfo();
+        }
+        
+        function updateExportSizeDisplay() {
+            if (originalImageData) {
+                const sizeDisplay = document.getElementById('originalSizeDisplay');
+                sizeDisplay.textContent = `${originalImageData.width}×${originalImageData.height}`;
             }
+        }
+        
+        function updateExportSizeInfo() {
+            const infoElement = document.getElementById('exportSizeInfo');
+            const originalWidth = originalImageData.width;
+            const originalHeight = originalImageData.height;
+            
+            let targetWidth, targetHeight;
+            
+            switch(exportSize) {
+                case 'original':
+                    targetWidth = originalWidth;
+                    targetHeight = originalHeight;
+                    break;
+                case 'large':
+                    targetWidth = 1920;
+                    targetHeight = Math.round((originalHeight / originalWidth) * 1920);
+                    break;
+                case 'medium':
+                    targetWidth = 1280;
+                    targetHeight = Math.round((originalHeight / originalWidth) * 1280);
+                    break;
+                case 'small':
+                    targetWidth = 800;
+                    targetHeight = Math.round((originalHeight / originalWidth) * 800);
+                    break;
+            }
+            
+            infoElement.textContent = `Exporting at ${targetWidth}×${targetHeight} pixels`;
+        }
+        
+        function downloadImage() {
+            if (!originalImageData) {
+                alert('No image to download');
+                return;
+            }
+            
+            closeExportModal();
+            showLoading('Preparing high-resolution download...');
+            
+            // Process in background to avoid blocking UI
+            setTimeout(() => {
+                try {
+                    // Create a new image for high-res processing
+                    const highResImage = new Image();
+                    highResImage.onload = function() {
+                        // Calculate target dimensions based on export size
+                        let targetWidth, targetHeight;
+                        const originalWidth = highResImage.width;
+                        const originalHeight = highResImage.height;
+                        
+                        switch(exportSize) {
+                            case 'original':
+                                targetWidth = originalWidth;
+                                targetHeight = originalHeight;
+                                break;
+                            case 'large':
+                                targetWidth = Math.min(1920, originalWidth);
+                                targetHeight = Math.round((originalHeight / originalWidth) * targetWidth);
+                                break;
+                            case 'medium':
+                                targetWidth = Math.min(1280, originalWidth);
+                                targetHeight = Math.round((originalHeight / originalWidth) * targetWidth);
+                                break;
+                            case 'small':
+                                targetWidth = Math.min(800, originalWidth);
+                                targetHeight = Math.round((originalHeight / originalWidth) * targetWidth);
+                                break;
+                        }
+                        
+                        // Create a canvas for high-res processing
+                        const highResCanvas = document.createElement('canvas');
+                        highResCanvas.width = targetWidth;
+                        highResCanvas.height = targetHeight;
+                        const highResCtx = highResCanvas.getContext('2d');
+                        
+                        // Draw the original image to the high-res canvas
+                        highResCtx.drawImage(highResImage, 0, 0, targetWidth, targetHeight);
+                        
+                        // Get current correction values
+                        const redShift = parseFloat(document.getElementById('redShift').value);
+                        const greenShift = parseFloat(document.getElementById('greenShift').value);
+                        const blueShift = parseFloat(document.getElementById('blueShift').value);
+                        const strength = parseFloat(document.getElementById('strength').value) / 100;
+                        
+                        // Adjust shifts for high-res (scale them proportionally)
+                        const scaleFactor = targetWidth / outputCanvas.width;
+                        const highResRedShift = redShift * scaleFactor;
+                        const highResGreenShift = greenShift * scaleFactor;
+                        const highResBlueShift = blueShift * scaleFactor;
+                        
+                        // Get image data
+                        const imageData = highResCtx.getImageData(0, 0, targetWidth, targetHeight);
+                        const data = imageData.data;
+                        
+                        // Create a copy for processing
+                        const originalData = highResCtx.getImageData(0, 0, targetWidth, targetHeight);
+                        const originalArray = originalData.data;
+                        
+                        // Apply channel shifts to high-res image
+                        for (let y = 0; y < targetHeight; y++) {
+                            for (let x = 0; x < targetWidth; x++) {
+                                const idx = (y * targetWidth + x) * 4;
+                                
+                                // Calculate shifted positions
+                                const shiftRedX = Math.round(x - highResRedShift * strength);
+                                const shiftGreenX = Math.round(x - highResGreenShift * strength);
+                                const shiftBlueX = Math.round(x - highResBlueShift * strength);
+                                
+                                // Get colors from original at shifted positions
+                                const getColor = (shiftX, channel) => {
+                                    if (shiftX < 0 || shiftX >= targetWidth) {
+                                        return 0; // Black for out of bounds
+                                    }
+                                    const shiftIdx = (y * targetWidth + shiftX) * 4;
+                                    return originalArray[shiftIdx + channel];
+                                };
+                                
+                                // Blend shifted channels with original
+                                const r = getColor(shiftRedX, 0);
+                                const g = getColor(shiftGreenX, 1);
+                                const b = getColor(shiftBlueX, 2);
+                                
+                                // Keep original alpha
+                                const a = data[idx + 3];
+                                
+                                // Apply to output
+                                data[idx] = r;
+                                data[idx + 1] = g;
+                                data[idx + 2] = b;
+                                data[idx + 3] = a;
+                            }
+                        }
+                        
+                        highResCtx.putImageData(imageData, 0, 0);
+                        
+                        // Create download link
+                        const link = document.createElement('a');
+                        const timestamp = new Date().getTime();
+                        link.download = `ca-fixed-${targetWidth}x${targetHeight}-${timestamp}.png`;
+                        link.href = highResCanvas.toDataURL('image/png', 1.0);
+                        
+                        // For iOS devices
+                        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+                            const newWindow = window.open();
+                            newWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <title>Save Image</title>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <style>
+                                        body { 
+                                            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+                                            padding: 20px; 
+                                            text-align: center; 
+                                            background: #f5f5f5;
+                                        }
+                                        img { 
+                                            max-width: 100%; 
+                                            height: auto; 
+                                            border-radius: 10px;
+                                            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                            margin: 20px 0;
+                                        }
+                                        .instructions { 
+                                            background: white; 
+                                            padding: 15px; 
+                                            border-radius: 10px; 
+                                            margin: 20px 0;
+                                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                        }
+                                        .size-info {
+                                            background: white;
+                                            padding: 10px 15px;
+                                            border-radius: 8px;
+                                            margin: 10px 0;
+                                            font-size: 14px;
+                                            color: #666;
+                                        }
+                                        button { 
+                                            background: #007AFF; 
+                                            color: white; 
+                                            border: none; 
+                                            padding: 12px 24px; 
+                                            border-radius: 8px; 
+                                            font-size: 16px; 
+                                            margin: 10px; 
+                                            cursor: pointer;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <h2>Save Corrected Image</h2>
+                                    <div class="size-info">Size: ${targetWidth}×${targetHeight} pixels</div>
+                                    <img src="${link.href}" alt="Corrected Image">
+                                    <div class="instructions">
+                                        <p><strong>To save:</strong></p>
+                                        <p>1. Tap and hold the image above</p>
+                                        <p>2. Select "Save Image" from the menu</p>
+                                    </div>
+                                    <button onclick="window.close()">Close</button>
+                                </body>
+                                </html>
+                            `);
+                            newWindow.document.close();
+                        } else {
+                            // For Android and desktop
+                            const event = new MouseEvent('click', {
+                                view: window,
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            link.dispatchEvent(event);
+                            
+                            // Show a success message
+                            setTimeout(() => {
+                                alert(`Image saved! Size: ${targetWidth}×${targetHeight} pixels`);
+                            }, 500);
+                        }
+                        
+                        hideLoading();
+                    };
+                    
+                    highResImage.src = originalImageData.src;
+                    
+                } catch (error) {
+                    console.error('Download error:', error);
+                    hideLoading();
+                    alert('Error preparing download. Please try again.');
+                }
+            }, 100);
         }
         
         function showLoading(text) {
