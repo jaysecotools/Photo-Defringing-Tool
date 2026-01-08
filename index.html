@@ -368,6 +368,72 @@
             backdrop-filter: blur(10px);
         }
         
+        /* Full-screen preview styles */
+        .fullscreen-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .fullscreen-container.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .fullscreen-header {
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(30, 30, 30, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .fullscreen-close {
+            background: rgba(100, 181, 246, 0.2);
+            border: 2px solid #64b5f6;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .fullscreen-close:active {
+            background: rgba(100, 181, 246, 0.4);
+            transform: scale(0.95);
+        }
+        
+        .fullscreen-title {
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .fullscreen-image {
+            flex: 1;
+            object-fit: contain;
+            width: 100%;
+            height: calc(100vh - 84px);
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+        
         .loading {
             position: fixed;
             top: 0;
@@ -501,6 +567,20 @@
             .comparison-slider-container {
                 height: 250px;
             }
+            
+            .mode-selector {
+                overflow-x: auto;
+                white-space: nowrap;
+                scrollbar-width: none;
+            }
+            
+            .mode-selector::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .mode-button {
+                min-width: 120px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -523,6 +603,15 @@
             
             .source-buttons {
                 flex-direction: column;
+            }
+            
+            .fullscreen-header {
+                padding: 15px;
+                padding-top: max(15px, env(safe-area-inset-top));
+            }
+            
+            .fullscreen-image {
+                padding: 10px;
             }
         }
     </style>
@@ -588,6 +677,7 @@
             <div class="mode-selector">
                 <button class="mode-button active" id="modeSide" onclick="switchMode('side')">Side-by-Side</button>
                 <button class="mode-button" id="modeSlider" onclick="switchMode('slider')">Comparison Slider</button>
+                <button class="mode-button" id="modeFull" onclick="switchMode('full')">Full-Screen Preview</button>
             </div>
             
             <div class="image-container" id="sideView">
@@ -611,6 +701,15 @@
                     <div class="comparison-label">Before</div>
                     <div class="comparison-label">After</div>
                 </div>
+            </div>
+            
+            <!-- Full-screen preview container -->
+            <div class="fullscreen-container" id="fullscreenView">
+                <div class="fullscreen-header">
+                    <button class="fullscreen-close" onclick="exitFullscreen()">✕</button>
+                    <div class="fullscreen-title">Full-Screen Preview</div>
+                </div>
+                <img id="fullscreen-image" class="fullscreen-image" alt="Corrected Image">
             </div>
             
             <button class="button secondary" onclick="saveImage()">
@@ -692,6 +791,7 @@
         let outputCtx = outputCanvas.getContext('2d');
         let currentMode = 'side';
         let isProcessing = false;
+        let zoomLevel = 1;
         
         // Initialize UI
         function initUI() {
@@ -738,6 +838,9 @@
             
             // Setup comparison slider
             setupComparisonSlider();
+            
+            // Setup full-screen gestures
+            setupFullscreenGestures();
             
             // Disable auto-detect button initially
             document.getElementById('autoDetectBtn').disabled = true;
@@ -809,6 +912,93 @@
             }
         }
         
+        function setupFullscreenGestures() {
+            const fullscreenImage = document.getElementById('fullscreen-image');
+            let initialPinchDistance = null;
+            let initialZoom = 1;
+            
+            // Double-tap to toggle zoom
+            let lastTap = 0;
+            fullscreenImage.addEventListener('touchend', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 300 && tapLength > 0) {
+                    // Double tap detected
+                    if (zoomLevel === 1) {
+                        zoomLevel = 2;
+                    } else {
+                        zoomLevel = 1;
+                    }
+                    updateFullscreenZoom();
+                    e.preventDefault();
+                }
+                lastTap = currentTime;
+            });
+            
+            // Pinch to zoom
+            fullscreenImage.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    initialPinchDistance = getDistance(
+                        e.touches[0].clientX, e.touches[0].clientY,
+                        e.touches[1].clientX, e.touches[1].clientY
+                    );
+                    initialZoom = zoomLevel;
+                }
+            });
+            
+            fullscreenImage.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && initialPinchDistance !== null) {
+                    e.preventDefault();
+                    const currentDistance = getDistance(
+                        e.touches[0].clientX, e.touches[0].clientY,
+                        e.touches[1].clientX, e.touches[1].clientY
+                    );
+                    
+                    const scale = currentDistance / initialPinchDistance;
+                    zoomLevel = Math.max(1, Math.min(initialZoom * scale, 3));
+                    updateFullscreenZoom();
+                }
+            });
+            
+            fullscreenImage.addEventListener('touchend', () => {
+                initialPinchDistance = null;
+            });
+            
+            // Click outside image to exit fullscreen
+            document.getElementById('fullscreenView').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    exitFullscreen();
+                }
+            });
+            
+            // Swipe down to exit fullscreen
+            let touchStartY = 0;
+            fullscreenImage.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            });
+            
+            fullscreenImage.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && zoomLevel === 1) {
+                    const touchEndY = e.touches[0].clientY;
+                    const deltaY = touchEndY - touchStartY;
+                    
+                    // Swipe down more than 100px to exit
+                    if (deltaY > 100) {
+                        exitFullscreen();
+                    }
+                }
+            });
+        }
+        
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+        
+        function updateFullscreenZoom() {
+            const fullscreenImage = document.getElementById('fullscreen-image');
+            fullscreenImage.style.transform = `scale(${zoomLevel})`;
+        }
+        
         function updateSliderDisplay(sliderId, value) {
             const displayIds = {
                 'redShift': 'redValue',
@@ -831,14 +1021,34 @@
             // Update button states
             document.getElementById('modeSide').classList.toggle('active', mode === 'side');
             document.getElementById('modeSlider').classList.toggle('active', mode === 'slider');
+            document.getElementById('modeFull').classList.toggle('active', mode === 'full');
             
             // Show/hide views
             document.getElementById('sideView').classList.toggle('active', mode === 'side');
             document.getElementById('sliderView').classList.toggle('active', mode === 'slider');
+            document.getElementById('fullscreenView').classList.toggle('active', mode === 'full');
             
-            if (originalImage && mode === 'slider') {
-                updateSliderView();
+            if (originalImage) {
+                if (mode === 'slider') {
+                    updateSliderView();
+                } else if (mode === 'full') {
+                    updateFullscreenView();
+                }
             }
+        }
+        
+        function exitFullscreen() {
+            // Reset zoom when exiting
+            zoomLevel = 1;
+            updateFullscreenZoom();
+            
+            // Return to side-by-side view
+            switchMode('side');
+        }
+        
+        function updateFullscreenView() {
+            const fullscreenImage = document.getElementById('fullscreen-image');
+            fullscreenImage.src = outputCanvas.toDataURL();
         }
         
         function handleImageUpload(e) {
@@ -1117,6 +1327,8 @@
             // Update comparison view if active
             if (currentMode === 'slider') {
                 updateSliderView();
+            } else if (currentMode === 'full') {
+                updateFullscreenView();
             }
         }
         
@@ -1168,6 +1380,8 @@
                 outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
                 if (currentMode === 'slider') {
                     updateSliderView();
+                } else if (currentMode === 'full') {
+                    updateFullscreenView();
                 }
             }
         }
