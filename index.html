@@ -153,10 +153,6 @@
             background: linear-gradient(135deg, #424242, #616161);
         }
         
-        .button.warning {
-            background: linear-gradient(135deg, #ff9800, #f57c00);
-        }
-        
         .button.success {
             background: linear-gradient(135deg, #4caf50, #2e7d32);
         }
@@ -266,7 +262,7 @@
         .single-image-container {
             position: relative;
             width: 100%;
-            height: 300px;
+            height: 400px;
             margin: 20px 0;
             border-radius: 12px;
             overflow: hidden;
@@ -279,15 +275,33 @@
             display: block;
         }
         
-        #singleImageView {
+        .single-image-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            overflow: hidden;
+            cursor: grab;
+        }
+        
+        .single-image-wrapper:active {
+            cursor: grabbing;
+        }
+        
+        #singleImageView {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            max-width: none;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
-            transform-origin: center center;
-            transition: transform 0.1s ease-out;
+            will-change: transform;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
         }
         
         .zoom-controls {
@@ -295,6 +309,7 @@
             bottom: 15px;
             right: 15px;
             display: flex;
+            flex-direction: column;
             gap: 10px;
             z-index: 10;
         }
@@ -326,12 +341,51 @@
             right: 15px;
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            padding: 8px 12px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-size: 0.9rem;
             backdrop-filter: blur(10px);
             z-index: 10;
-            display: none;
+        }
+        
+        .zoom-slider-container {
+            position: absolute;
+            bottom: 70px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .zoom-slider {
+            width: 120px;
+            height: 4px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+        }
+        
+        .zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            border: 2px solid #121212;
+        }
+        
+        .zoom-slider-value {
+            color: white;
+            font-size: 0.8rem;
+            min-width: 40px;
+            text-align: center;
         }
         
         .image-container {
@@ -440,7 +494,7 @@
             backdrop-filter: blur(10px);
         }
         
-        /* Full-screen preview styles - FIXED */
+        /* Full-screen preview styles */
         .fullscreen-container {
             position: fixed;
             top: 0;
@@ -544,14 +598,19 @@
         }
         
         #fullscreen-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transition: transform 0.1s ease-out;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            max-width: none;
+            max-height: none;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
-            transform-origin: center center;
+            will-change: transform;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
         }
         
         .loading {
@@ -632,35 +691,6 @@
         
         .hint strong {
             color: #64b5f6;
-        }
-        
-        .auto-results {
-            background: rgba(76, 175, 80, 0.1);
-            border-left: 4px solid #4caf50;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: none;
-        }
-        
-        .auto-results.active {
-            display: block;
-        }
-        
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-            font-size: 0.95rem;
-        }
-        
-        .result-label {
-            color: #aaa;
-        }
-        
-        .result-value {
-            color: #4caf50;
-            font-weight: 500;
         }
         
         /* Export options modal */
@@ -802,7 +832,10 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             
-            .single-image-container,
+            .single-image-container {
+                height: 350px;
+            }
+            
             .comparison-slider-container {
                 height: 250px;
             }
@@ -855,6 +888,10 @@
             
             .source-buttons {
                 flex-direction: column;
+            }
+            
+            .single-image-container {
+                height: 300px;
             }
             
             .export-buttons {
@@ -932,31 +969,6 @@
             <input type="file" id="fileInput" accept="image/*">
             <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
             
-            <button class="button" onclick="autoDetectCA()" id="autoDetectBtn">
-                <span class="button-icon">🔍</span>
-                Auto-Detect & Fix
-            </button>
-            
-            <div class="auto-results" id="autoResults">
-                <div style="color: #4caf50; font-weight: 600; margin-bottom: 10px;">🎯 Auto-detection Results:</div>
-                <div class="result-item">
-                    <span class="result-label">Red Shift:</span>
-                    <span class="result-value" id="autoRed">0px</span>
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Green Shift:</span>
-                    <span class="result-value" id="autoGreen">0px</span>
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Blue Shift:</span>
-                    <span class="result-value" id="autoBlue">0px</span>
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Confidence:</span>
-                    <span class="result-value" id="autoConfidence">0%</span>
-                </div>
-            </div>
-            
             <div class="mode-selector">
                 <button class="mode-button active" id="modeSingle" onclick="switchMode('single')">Single Image</button>
                 <button class="mode-button" id="modeSide" onclick="switchMode('side')">Side-by-Side</button>
@@ -966,8 +978,14 @@
             
             <!-- Single Image Editing View (Main working view) -->
             <div class="single-image-container active" id="singleView">
-                <img id="singleImageView" alt="Corrected Image">
+                <div class="single-image-wrapper" id="singleImageWrapper">
+                    <img id="singleImageView" alt="Corrected Image">
+                </div>
                 <div class="zoom-indicator" id="zoomIndicator">100%</div>
+                <div class="zoom-slider-container">
+                    <input type="range" class="zoom-slider" id="zoomSlider" min="1" max="10" value="1" step="0.1">
+                    <div class="zoom-slider-value" id="zoomSliderValue">1x</div>
+                </div>
                 <div class="zoom-controls">
                     <button class="zoom-button" onclick="zoomOut()">-</button>
                     <button class="zoom-button" onclick="resetSingleZoom()">↻</button>
@@ -1007,7 +1025,7 @@
                         <button class="fullscreen-control-btn" onclick="resetFullscreenZoom()">↻</button>
                     </div>
                 </div>
-                <div class="fullscreen-image-container" id="fullscreen-image-container">
+                <div class="fullscreen-image-container" id="fullscreenImageContainer">
                     <img id="fullscreen-image" alt="Corrected Image">
                 </div>
             </div>
@@ -1078,7 +1096,7 @@
             </button>
             
             <div class="hint">
-                <strong>💡 Pro Tip:</strong> Use the Single Image view with pinch-to-zoom for precise editing. Adjust sliders while zoomed in to see real-time changes.
+                <strong>💡 Pro Tip:</strong> Use zoom slider for precise control. Zoom up to 1000% for pixel-level editing. Adjust channels while zoomed in for perfect results.
             </div>
         </div>
     </div>
@@ -1096,17 +1114,21 @@
         
         // Zoom variables for single image view
         let singleZoomLevel = 1;
-        let singleZoomX = 0;
-        let singleZoomY = 0;
-        let isSinglePinching = false;
+        let singlePanX = 0;
+        let singlePanY = 0;
         let isSinglePanning = false;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
         
         // Zoom variables for fullscreen view
         let fullscreenZoomLevel = 1;
-        let fullscreenZoomX = 0;
-        let fullscreenZoomY = 0;
-        let isFullscreenPinching = false;
-        let isFullscreenPanning = false;
+        let fullscreenPanX = 0;
+        let fullscreenPanY = 0;
+        
+        // Higher resolution working canvas (2x for better zoom quality)
+        let workingScale = 2;
+        let workingCanvas = document.createElement('canvas');
+        let workingCtx = workingCanvas.getContext('2d');
         
         // Initialize UI
         function initUI() {
@@ -1144,57 +1166,136 @@
                 const slider = document.getElementById(sliderId);
                 slider.addEventListener('input', function() {
                     updateSliderDisplay(sliderId, this.value);
-                    applyCorrection(); // Apply correction immediately when slider changes
+                    applyCorrection();
                 });
                 updateSliderDisplay(sliderId, slider.value);
+            });
+            
+            // Setup zoom slider
+            const zoomSlider = document.getElementById('zoomSlider');
+            zoomSlider.addEventListener('input', function() {
+                singleZoomLevel = parseFloat(this.value);
+                document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
+                document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
+                updateSingleImageZoom();
             });
             
             // Setup comparison slider
             setupComparisonSlider();
             
-            // Setup pinch-to-zoom for single image view
+            // Setup zoom and pan for single image view
             setupSingleImageZoom();
             
-            // Setup pinch-to-zoom for fullscreen view
+            // Setup zoom and pan for fullscreen view
             setupFullscreenZoom();
             
-            // Disable auto-detect button initially
-            document.getElementById('autoDetectBtn').disabled = true;
-            
-            console.log("CA Fix initialized");
+            console.log("CA Fix initialized - Manual mode only");
         }
         
         function setupSingleImageZoom() {
+            const wrapper = document.getElementById('singleImageWrapper');
             const singleImage = document.getElementById('singleImageView');
-            const singleContainer = document.getElementById('singleView');
             
-            let initialDistance = 0;
-            let initialZoom = 1;
-            let lastTouchX = 0;
-            let lastTouchY = 0;
+            // Mouse events for desktop
+            wrapper.addEventListener('mousedown', startPan);
+            document.addEventListener('mousemove', doPan);
+            document.addEventListener('mouseup', endPan);
             
-            // Touch events for pinch-to-zoom
-            singleContainer.addEventListener('touchstart', (e) => {
+            // Touch events for mobile
+            wrapper.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    startPan(e);
+                }
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && isSinglePanning) {
+                    e.preventDefault();
+                    doPan(e);
+                }
+            }, { passive: false });
+            
+            document.addEventListener('touchend', endPan);
+            
+            function startPan(e) {
+                if (singleZoomLevel <= 1) return;
+                
+                isSinglePanning = true;
+                wrapper.style.cursor = 'grabbing';
+                
+                if (e.type === 'touchstart') {
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                } else {
+                    lastTouchX = e.clientX;
+                    lastTouchY = e.clientY;
+                }
+                
+                e.preventDefault();
+            }
+            
+            function doPan(e) {
+                if (!isSinglePanning || singleZoomLevel <= 1) return;
+                
+                let clientX, clientY;
+                if (e.type === 'touchmove') {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
+                const deltaX = clientX - lastTouchX;
+                const deltaY = clientY - lastTouchY;
+                
+                // Calculate max pan based on zoom level and image size
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const imageWidth = singleImage.naturalWidth || singleImage.width;
+                const imageHeight = singleImage.naturalHeight || singleImage.height;
+                const scaleRatio = Math.min(wrapperRect.width / imageWidth, wrapperRect.height / imageHeight);
+                const displayedWidth = imageWidth * scaleRatio * singleZoomLevel;
+                const displayedHeight = imageHeight * scaleRatio * singleZoomLevel;
+                
+                const maxPanX = Math.max(0, (displayedWidth - wrapperRect.width) / 2);
+                const maxPanY = Math.max(0, (displayedHeight - wrapperRect.height) / 2);
+                
+                singlePanX = Math.max(-maxPanX, Math.min(maxPanX, singlePanX + deltaX));
+                singlePanY = Math.max(-maxPanY, Math.min(maxPanY, singlePanY + deltaY));
+                
+                lastTouchX = clientX;
+                lastTouchY = clientY;
+                
+                updateSingleImageZoom();
+                e.preventDefault();
+            }
+            
+            function endPan() {
+                isSinglePanning = false;
+                wrapper.style.cursor = 'grab';
+            }
+            
+            // Pinch-to-zoom for mobile
+            let initialPinchDistance = 0;
+            let initialPinchZoom = 1;
+            let isPinching = false;
+            
+            wrapper.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 2) {
-                    isSinglePinching = true;
+                    isPinching = true;
                     const touch1 = e.touches[0];
                     const touch2 = e.touches[1];
-                    initialDistance = Math.hypot(
+                    initialPinchDistance = Math.hypot(
                         touch2.clientX - touch1.clientX,
                         touch2.clientY - touch1.clientY
                     );
-                    initialZoom = singleZoomLevel;
-                    e.preventDefault();
-                } else if (e.touches.length === 1 && singleZoomLevel > 1) {
-                    isSinglePanning = true;
-                    lastTouchX = e.touches[0].clientX;
-                    lastTouchY = e.touches[0].clientY;
+                    initialPinchZoom = singleZoomLevel;
                     e.preventDefault();
                 }
             });
             
-            singleContainer.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2 && isSinglePinching) {
+            wrapper.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && isPinching) {
                     const touch1 = e.touches[0];
                     const touch2 = e.touches[1];
                     const currentDistance = Math.hypot(
@@ -1202,187 +1303,149 @@
                         touch2.clientY - touch1.clientY
                     );
                     
-                    // Calculate zoom scale
-                    const scale = currentDistance / initialDistance;
-                    singleZoomLevel = Math.max(1, Math.min(initialZoom * scale, 5));
+                    const scale = currentDistance / initialPinchDistance;
+                    singleZoomLevel = Math.max(1, Math.min(initialPinchZoom * scale, 10));
                     
-                    // Update image transform
-                    updateSingleImageZoom();
-                    e.preventDefault();
-                } else if (e.touches.length === 1 && isSinglePanning) {
-                    const touchX = e.touches[0].clientX;
-                    const touchY = e.touches[0].clientY;
-                    
-                    const deltaX = touchX - lastTouchX;
-                    const deltaY = touchY - lastTouchY;
-                    
-                    // Calculate pan boundaries based on zoom level
-                    const containerRect = singleContainer.getBoundingClientRect();
-                    const maxPanX = (singleImage.width * (singleZoomLevel - 1)) / 2;
-                    const maxPanY = (singleImage.height * (singleZoomLevel - 1)) / 2;
-                    
-                    singleZoomX = Math.max(-maxPanX, Math.min(maxPanX, singleZoomX + deltaX));
-                    singleZoomY = Math.max(-maxPanY, Math.min(maxPanY, singleZoomY + deltaY));
-                    
-                    lastTouchX = touchX;
-                    lastTouchY = touchY;
+                    // Update slider
+                    document.getElementById('zoomSlider').value = singleZoomLevel;
+                    document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
+                    document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
                     
                     updateSingleImageZoom();
                     e.preventDefault();
                 }
             });
             
-            singleContainer.addEventListener('touchend', () => {
-                isSinglePinching = false;
-                isSinglePanning = false;
+            wrapper.addEventListener('touchend', () => {
+                isPinching = false;
             });
             
-            // Double tap to toggle zoom
-            let lastTap = 0;
-            singleContainer.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 300 && tapLength > 0 && e.touches.length === 0) {
-                    if (singleZoomLevel === 1) {
-                        // Zoom in to 2x
-                        singleZoomLevel = 2;
-                    } else {
-                        // Reset zoom
-                        resetSingleZoom();
-                    }
-                    updateSingleImageZoom();
-                    e.preventDefault();
-                }
-                lastTap = currentTime;
-            });
-            
-            // Mouse wheel zoom
-            singleContainer.addEventListener('wheel', (e) => {
+            // Mouse wheel zoom for desktop
+            wrapper.addEventListener('wheel', (e) => {
                 e.preventDefault();
-                if (e.deltaY < 0) {
-                    // Zoom in
-                    singleZoomLevel = Math.min(5, singleZoomLevel * 1.1);
-                } else {
-                    // Zoom out
-                    singleZoomLevel = Math.max(1, singleZoomLevel / 1.1);
-                }
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                singleZoomLevel = Math.max(1, Math.min(singleZoomLevel * zoomFactor, 10));
+                
+                // Update slider
+                document.getElementById('zoomSlider').value = singleZoomLevel;
+                document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
+                document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
+                
                 updateSingleImageZoom();
             });
         }
         
         function setupFullscreenZoom() {
+            const container = document.getElementById('fullscreenImageContainer');
             const fullscreenImage = document.getElementById('fullscreen-image');
-            const fullscreenContainer = document.getElementById('fullscreen-image-container');
             
-            let initialDistance = 0;
-            let initialZoom = 1;
-            let lastTouchX = 0;
-            let lastTouchY = 0;
+            let isFullscreenPanning = false;
+            let lastFullscreenTouchX = 0;
+            let lastFullscreenTouchY = 0;
             
-            // Touch events for pinch-to-zoom
-            fullscreenContainer.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    isFullscreenPinching = true;
+            // Touch events for fullscreen
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isFullscreenPanning = true;
+                    lastFullscreenTouchX = e.touches[0].clientX;
+                    lastFullscreenTouchY = e.touches[0].clientY;
+                    e.preventDefault();
+                } else if (e.touches.length === 2) {
                     const touch1 = e.touches[0];
                     const touch2 = e.touches[1];
-                    initialDistance = Math.hypot(
+                    const initialDistance = Math.hypot(
                         touch2.clientX - touch1.clientX,
                         touch2.clientY - touch1.clientY
                     );
-                    initialZoom = fullscreenZoomLevel;
-                    e.preventDefault();
-                } else if (e.touches.length === 1 && fullscreenZoomLevel > 1) {
-                    isFullscreenPanning = true;
-                    lastTouchX = e.touches[0].clientX;
-                    lastTouchY = e.touches[0].clientY;
+                    const initialZoom = fullscreenZoomLevel;
+                    
+                    // Pinch-to-zoom
+                    container.addEventListener('touchmove', function pinchZoom(e) {
+                        if (e.touches.length === 2) {
+                            const touch1 = e.touches[0];
+                            const touch2 = e.touches[1];
+                            const currentDistance = Math.hypot(
+                                touch2.clientX - touch1.clientX,
+                                touch2.clientY - touch1.clientY
+                            );
+                            
+                            const scale = currentDistance / initialDistance;
+                            fullscreenZoomLevel = Math.max(1, Math.min(initialZoom * scale, 10));
+                            updateFullscreenZoom();
+                            e.preventDefault();
+                        }
+                    }, { passive: false });
+                    
                     e.preventDefault();
                 }
             });
             
-            fullscreenContainer.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2 && isFullscreenPinching) {
-                    const touch1 = e.touches[0];
-                    const touch2 = e.touches[1];
-                    const currentDistance = Math.hypot(
-                        touch2.clientX - touch1.clientX,
-                        touch2.clientY - touch1.clientY
-                    );
-                    
-                    // Calculate zoom scale
-                    const scale = currentDistance / initialDistance;
-                    fullscreenZoomLevel = Math.max(1, Math.min(initialZoom * scale, 5));
-                    
-                    // Update image transform
-                    updateFullscreenZoom();
-                    e.preventDefault();
-                } else if (e.touches.length === 1 && isFullscreenPanning) {
+            container.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && isFullscreenPanning && fullscreenZoomLevel > 1) {
                     const touchX = e.touches[0].clientX;
                     const touchY = e.touches[0].clientY;
                     
-                    const deltaX = touchX - lastTouchX;
-                    const deltaY = touchY - lastTouchY;
+                    const deltaX = touchX - lastFullscreenTouchX;
+                    const deltaY = touchY - lastFullscreenTouchY;
                     
-                    // Calculate pan boundaries
-                    const containerRect = fullscreenContainer.getBoundingClientRect();
-                    const maxPanX = (fullscreenImage.width * (fullscreenZoomLevel - 1)) / 2;
-                    const maxPanY = (fullscreenImage.height * (fullscreenZoomLevel - 1)) / 2;
+                    fullscreenPanX += deltaX;
+                    fullscreenPanY += deltaY;
                     
-                    fullscreenZoomX = Math.max(-maxPanX, Math.min(maxPanX, fullscreenZoomX + deltaX));
-                    fullscreenZoomY = Math.max(-maxPanY, Math.min(maxPanY, fullscreenZoomY + deltaY));
-                    
-                    lastTouchX = touchX;
-                    lastTouchY = touchY;
+                    lastFullscreenTouchX = touchX;
+                    lastFullscreenTouchY = touchY;
                     
                     updateFullscreenZoom();
                     e.preventDefault();
                 }
-            });
+            }, { passive: false });
             
-            fullscreenContainer.addEventListener('touchend', () => {
-                isFullscreenPinching = false;
+            container.addEventListener('touchend', () => {
                 isFullscreenPanning = false;
             });
         }
         
         function updateSingleImageZoom() {
             const singleImage = document.getElementById('singleImageView');
-            const zoomIndicator = document.getElementById('zoomIndicator');
-            
-            const transform = `scale(${singleZoomLevel}) translate(${singleZoomX}px, ${singleZoomY}px)`;
+            const transform = `translate(-50%, -50%) translate(${singlePanX}px, ${singlePanY}px) scale(${singleZoomLevel})`;
             singleImage.style.transform = transform;
-            
-            // Update zoom indicator
-            zoomIndicator.textContent = `${Math.round(singleZoomLevel * 100)}%`;
-            zoomIndicator.style.display = singleZoomLevel > 1 ? 'block' : 'none';
         }
         
         function updateFullscreenZoom() {
             const fullscreenImage = document.getElementById('fullscreen-image');
-            const transform = `scale(${fullscreenZoomLevel}) translate(${fullscreenZoomX}px, ${fullscreenZoomY}px)`;
+            const transform = `translate(-50%, -50%) translate(${fullscreenPanX}px, ${fullscreenPanY}px) scale(${fullscreenZoomLevel})`;
             fullscreenImage.style.transform = transform;
         }
         
         function zoomIn() {
-            singleZoomLevel = Math.min(5, singleZoomLevel * 1.2);
+            singleZoomLevel = Math.min(10, singleZoomLevel + 0.5);
+            updateZoomControls();
             updateSingleImageZoom();
         }
         
         function zoomOut() {
-            singleZoomLevel = Math.max(1, singleZoomLevel / 1.2);
+            singleZoomLevel = Math.max(1, singleZoomLevel - 0.5);
+            updateZoomControls();
             updateSingleImageZoom();
+        }
+        
+        function updateZoomControls() {
+            document.getElementById('zoomSlider').value = singleZoomLevel;
+            document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
+            document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
         }
         
         function resetSingleZoom() {
             singleZoomLevel = 1;
-            singleZoomX = 0;
-            singleZoomY = 0;
+            singlePanX = 0;
+            singlePanY = 0;
+            updateZoomControls();
             updateSingleImageZoom();
         }
         
         function resetFullscreenZoom() {
             fullscreenZoomLevel = 1;
-            fullscreenZoomX = 0;
-            fullscreenZoomY = 0;
+            fullscreenPanX = 0;
+            fullscreenPanY = 0;
             updateFullscreenZoom();
         }
         
@@ -1399,12 +1462,10 @@
             const imageAfter = document.getElementById('image-after');
             let isSliding = false;
             
-            // Mouse events
             handle.addEventListener('mousedown', startSliding);
             document.addEventListener('mousemove', slide);
             document.addEventListener('mouseup', stopSliding);
             
-            // Touch events for mobile
             handle.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 startSliding(e);
@@ -1512,9 +1573,10 @@
             // Reset zoom for fullscreen
             resetFullscreenZoom();
             
-            // Update fullscreen image
+            // Update fullscreen image with high resolution
             const fullscreenImage = document.getElementById('fullscreen-image');
-            fullscreenImage.src = outputCanvas.toDataURL();
+            // Use the working canvas for better quality
+            fullscreenImage.src = workingCanvas.toDataURL();
         }
         
         function exitFullscreen() {
@@ -1527,7 +1589,8 @@
         
         function updateSingleImageView() {
             const singleImage = document.getElementById('singleImageView');
-            singleImage.src = outputCanvas.toDataURL();
+            // Use the working canvas for better quality in single view
+            singleImage.src = workingCanvas.toDataURL();
         }
         
         function handleImageUpload(e) {
@@ -1535,7 +1598,6 @@
             if (file) {
                 loadImageFile(file);
             }
-            // Reset the input so the same file can be selected again
             e.target.value = '';
         }
         
@@ -1546,7 +1608,6 @@
             reader.onload = function(event) {
                 originalImage = new Image();
                 originalImage.onload = function() {
-                    // Store original image data
                     originalImageData = {
                         src: event.target.result,
                         width: originalImage.width,
@@ -1567,28 +1628,39 @@
         }
         
         function processImageLoad() {
-            // Set canvas dimensions (optimized for mobile display)
-            const maxDimension = Math.min(800, Math.min(window.innerWidth, window.innerHeight) - 100);
-            const scale = Math.min(
-                maxDimension / originalImage.width,
-                maxDimension / originalImage.height
+            // Set display canvas dimensions (optimized for mobile)
+            const maxDisplayDimension = Math.min(1024, Math.min(window.innerWidth, window.innerHeight) - 100);
+            const displayScale = Math.min(
+                maxDisplayDimension / originalImage.width,
+                maxDisplayDimension / originalImage.height
             );
             
-            originalCanvas.width = outputCanvas.width = Math.floor(originalImage.width * scale);
-            originalCanvas.height = outputCanvas.height = Math.floor(originalImage.height * scale);
+            originalCanvas.width = outputCanvas.width = Math.floor(originalImage.width * displayScale);
+            originalCanvas.height = outputCanvas.height = Math.floor(originalImage.height * displayScale);
             
-            // Draw original image to canvas
+            // Set working canvas to higher resolution for better zoom quality
+            const maxWorkingDimension = 2048; // Higher resolution for better zoom
+            const workingScaleFactor = Math.min(
+                maxWorkingDimension / originalImage.width,
+                maxWorkingDimension / originalImage.height,
+                2 // Maximum 2x scale
+            );
+            
+            workingCanvas.width = Math.floor(originalImage.width * workingScaleFactor);
+            workingCanvas.height = Math.floor(originalImage.height * workingScaleFactor);
+            
+            console.log(`Working canvas: ${workingCanvas.width}x${workingCanvas.height} (${workingScaleFactor.toFixed(2)}x)`);
+            
+            // Draw to all canvases
             originalCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
             outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+            workingCtx.drawImage(originalImage, 0, 0, workingCanvas.width, workingCanvas.height);
             
-            // Show single image view by default
+            // Show single image view by default with high resolution
             updateSingleImageView();
             
-            // Enable auto-detect button
-            document.getElementById('autoDetectBtn').disabled = false;
-            
             // Update upload area text
-            document.querySelector('.upload-text').textContent = 'Image loaded! Tap Auto-Detect to fix';
+            document.querySelector('.upload-text').textContent = 'Image loaded! Adjust sliders to fix color fringing';
             document.querySelector('.upload-icon').textContent = '✅';
             
             // Update export modal with original size
@@ -1614,70 +1686,6 @@
             handle.style.left = '50%';
         }
         
-        async function autoDetectCA() {
-            if (!originalImage || isProcessing) return;
-            
-            showLoading('Analyzing image for color fringing...');
-            isProcessing = true;
-            
-            // Disable buttons during processing
-            document.getElementById('autoDetectBtn').disabled = true;
-            
-            try {
-                // Analyze edges for color shifts
-                const analysis = analyzeChromaticAberrationSimple();
-                
-                // Apply detected corrections
-                document.getElementById('redShift').value = analysis.redShift.toFixed(1);
-                document.getElementById('greenShift').value = analysis.greenShift.toFixed(1);
-                document.getElementById('blueShift').value = analysis.blueShift.toFixed(1);
-                
-                // Update displays
-                updateSliderDisplay('redShift', analysis.redShift.toFixed(1));
-                updateSliderDisplay('greenShift', analysis.greenShift.toFixed(1));
-                updateSliderDisplay('blueShift', analysis.blueShift.toFixed(1));
-                
-                // Show results
-                document.getElementById('autoRed').textContent = `${analysis.redShift.toFixed(1)}px`;
-                document.getElementById('autoGreen').textContent = `${analysis.greenShift.toFixed(1)}px`;
-                document.getElementById('autoBlue').textContent = `${analysis.blueShift.toFixed(1)}px`;
-                document.getElementById('autoConfidence').textContent = `${Math.round(analysis.confidence * 100)}%`;
-                document.getElementById('autoResults').classList.add('active');
-                
-                // Apply correction
-                applyCorrection();
-                
-                hideLoading();
-                isProcessing = false;
-                document.getElementById('autoDetectBtn').disabled = false;
-                
-            } catch (error) {
-                console.error('Auto-detection error:', error);
-                hideLoading();
-                isProcessing = false;
-                document.getElementById('autoDetectBtn').disabled = false;
-                alert('Auto-detection failed. Please try manual adjustment.');
-            }
-        }
-        
-        function analyzeChromaticAberrationSimple() {
-            // Return test values that will create visible changes
-            const testValues = [
-                { red: -1.5, green: 0, blue: 1.5 },
-                { red: 1.2, green: -0.8, blue: 0.6 },
-                { red: 0.5, green: 1.2, blue: -1.7 }
-            ];
-            
-            const randomTest = testValues[Math.floor(Math.random() * testValues.length)];
-            
-            return {
-                redShift: randomTest.red,
-                greenShift: randomTest.green,
-                blueShift: randomTest.blue,
-                confidence: 0.8
-            };
-        }
-        
         function applyCorrection() {
             if (!originalImage) return;
             
@@ -1686,47 +1694,12 @@
             const blueShift = parseFloat(document.getElementById('blueShift').value);
             const strength = parseFloat(document.getElementById('strength').value) / 100;
             
-            // Clear output and copy original
-            outputCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-            outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+            // Apply to display canvas (lower resolution for quick preview)
+            applyCorrectionToCanvas(outputCanvas, outputCtx, redShift, greenShift, blueShift, strength, 1);
             
-            // Get image data
-            const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-            const data = imageData.data;
-            
-            // Create a copy of the original for reference
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = outputCanvas.width;
-            tempCanvas.height = outputCanvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
-            const originalData = tempCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-            const originalArray = originalData.data;
-            
-            // Apply channel shifts
-            for (let y = 0; y < outputCanvas.height; y++) {
-                for (let x = 0; x < outputCanvas.width; x++) {
-                    const idx = (y * outputCanvas.width + x) * 4;
-                    
-                    // Calculate shifted positions
-                    const shiftRedX = Math.max(0, Math.min(outputCanvas.width - 1, x - (redShift * strength)));
-                    const shiftGreenX = Math.max(0, Math.min(outputCanvas.width - 1, x - (greenShift * strength)));
-                    const shiftBlueX = Math.max(0, Math.min(outputCanvas.width - 1, x - (blueShift * strength)));
-                    
-                    // Get colors from shifted positions
-                    const getShiftedColor = (shiftX, channelOffset) => {
-                        const shiftIdx = (y * outputCanvas.width + Math.round(shiftX)) * 4;
-                        return originalArray[shiftIdx + channelOffset];
-                    };
-                    
-                    // Apply shifted colors
-                    data[idx] = getShiftedColor(shiftRedX, 0);
-                    data[idx + 1] = getShiftedColor(shiftGreenX, 1);
-                    data[idx + 2] = getShiftedColor(shiftBlueX, 2);
-                }
-            }
-            
-            outputCtx.putImageData(imageData, 0, 0);
+            // Apply to working canvas (higher resolution for zoom)
+            applyCorrectionToCanvas(workingCanvas, workingCtx, redShift, greenShift, blueShift, strength, 
+                workingCanvas.width / originalImage.width);
             
             // Update all views
             updateSingleImageView();
@@ -1738,8 +1711,57 @@
             // Update fullscreen view if active
             if (document.getElementById('fullscreenView').classList.contains('active')) {
                 const fullscreenImage = document.getElementById('fullscreen-image');
-                fullscreenImage.src = outputCanvas.toDataURL();
+                fullscreenImage.src = workingCanvas.toDataURL();
             }
+        }
+        
+        function applyCorrectionToCanvas(canvas, ctx, redShift, greenShift, blueShift, strength, scaleFactor) {
+            // Clear and draw original
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+            
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Create a copy for processing
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+            const originalData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
+            const originalArray = originalData.data;
+            
+            // Scale shifts for this canvas resolution
+            const scaledRedShift = redShift * scaleFactor * strength;
+            const scaledGreenShift = greenShift * scaleFactor * strength;
+            const scaledBlueShift = blueShift * scaleFactor * strength;
+            
+            // Apply channel shifts
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const idx = (y * canvas.width + x) * 4;
+                    
+                    // Calculate shifted positions
+                    const shiftRedX = Math.max(0, Math.min(canvas.width - 1, x - scaledRedShift));
+                    const shiftGreenX = Math.max(0, Math.min(canvas.width - 1, x - scaledGreenShift));
+                    const shiftBlueX = Math.max(0, Math.min(canvas.width - 1, x - scaledBlueShift));
+                    
+                    // Get colors from shifted positions
+                    const getShiftedColor = (shiftX, channelOffset) => {
+                        const shiftIdx = (y * canvas.width + Math.round(shiftX)) * 4;
+                        return originalArray[shiftIdx + channelOffset];
+                    };
+                    
+                    // Apply shifted colors
+                    data[idx] = getShiftedColor(shiftRedX, 0);
+                    data[idx + 1] = getShiftedColor(shiftGreenX, 1);
+                    data[idx + 2] = getShiftedColor(shiftBlueX, 2);
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
         }
         
         function applyManualCorrection() {
@@ -1765,7 +1787,6 @@
                     break;
             }
             
-            // Update displays
             updateSliderDisplay('redShift', document.getElementById('redShift').value);
             updateSliderDisplay('greenShift', document.getElementById('greenShift').value);
             updateSliderDisplay('blueShift', document.getElementById('blueShift').value);
@@ -1784,17 +1805,18 @@
             updateSliderDisplay('blueShift', 0);
             updateSliderDisplay('strength', 100);
             
-            document.getElementById('autoResults').classList.remove('active');
+            resetSingleZoom();
             
             if (originalImage) {
                 outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+                workingCtx.drawImage(originalImage, 0, 0, workingCanvas.width, workingCanvas.height);
                 updateSingleImageView();
                 if (currentMode === 'slider') {
                     updateSliderView();
                 }
                 if (document.getElementById('fullscreenView').classList.contains('active')) {
                     const fullscreenImage = document.getElementById('fullscreen-image');
-                    fullscreenImage.src = outputCanvas.toDataURL();
+                    fullscreenImage.src = workingCanvas.toDataURL();
                 }
             }
         }
@@ -1815,13 +1837,11 @@
         function selectExportSize(size) {
             exportSize = size;
             
-            // Update UI
             document.querySelectorAll('.export-option').forEach(option => {
                 option.classList.remove('selected');
             });
             event.currentTarget.classList.add('selected');
             
-            // Update size info
             updateExportSizeInfo();
         }
         
@@ -1909,23 +1929,23 @@
                         const blueShift = parseFloat(document.getElementById('blueShift').value);
                         const strength = parseFloat(document.getElementById('strength').value) / 100;
                         
-                        const scaleFactor = targetWidth / outputCanvas.width;
-                        const highResRedShift = redShift * scaleFactor;
-                        const highResGreenShift = greenShift * scaleFactor;
-                        const highResBlueShift = blueShift * scaleFactor;
-                        
                         const imageData = highResCtx.getImageData(0, 0, targetWidth, targetHeight);
                         const data = imageData.data;
                         const originalData = highResCtx.getImageData(0, 0, targetWidth, targetHeight);
                         const originalArray = originalData.data;
                         
+                        // Scale shifts for export resolution
+                        const exportRedShift = redShift * (targetWidth / originalImage.width) * strength;
+                        const exportGreenShift = greenShift * (targetWidth / originalImage.width) * strength;
+                        const exportBlueShift = blueShift * (targetWidth / originalImage.width) * strength;
+                        
                         for (let y = 0; y < targetHeight; y++) {
                             for (let x = 0; x < targetWidth; x++) {
                                 const idx = (y * targetWidth + x) * 4;
                                 
-                                const shiftRedX = Math.max(0, Math.min(targetWidth - 1, x - (highResRedShift * strength)));
-                                const shiftGreenX = Math.max(0, Math.min(targetWidth - 1, x - (highResGreenShift * strength)));
-                                const shiftBlueX = Math.max(0, Math.min(targetWidth - 1, x - (highResBlueShift * strength)));
+                                const shiftRedX = Math.max(0, Math.min(targetWidth - 1, x - exportRedShift));
+                                const shiftGreenX = Math.max(0, Math.min(targetWidth - 1, x - exportGreenShift));
+                                const shiftBlueX = Math.max(0, Math.min(targetWidth - 1, x - exportBlueShift));
                                 
                                 const getShiftedColor = (shiftX, channelOffset) => {
                                     const shiftIdx = (y * targetWidth + Math.round(shiftX)) * 4;
@@ -1984,19 +2004,6 @@
             }
             window.lastTouchEnd = now;
         }, false);
-        
-        // Test function
-        window.testCorrection = function() {
-            console.log("Testing correction...");
-            document.getElementById('redShift').value = 2;
-            document.getElementById('greenShift').value = -1;
-            document.getElementById('blueShift').value = 1.5;
-            updateSliderDisplay('redShift', 2);
-            updateSliderDisplay('greenShift', -1);
-            updateSliderDisplay('blueShift', 1.5);
-            applyCorrection();
-            alert("Test correction applied.");
-        };
     </script>
 </body>
 </html>
