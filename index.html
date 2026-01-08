@@ -90,6 +90,41 @@
             display: none;
         }
         
+        .source-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .source-button {
+            flex: 1;
+            padding: 14px;
+            background: #333;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .source-button:active {
+            background: #444;
+            transform: scale(0.98);
+        }
+        
+        .source-button.primary {
+            background: linear-gradient(135deg, #64b5f6, #2196f3);
+        }
+        
+        .source-button-icon {
+            font-size: 1.2rem;
+        }
+        
         .button {
             width: 100%;
             padding: 16px;
@@ -413,6 +448,35 @@
             color: #64b5f6;
         }
         
+        .auto-results {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .auto-results.active {
+            display: block;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.95rem;
+        }
+        
+        .result-label {
+            color: #aaa;
+        }
+        
+        .result-value {
+            color: #4caf50;
+            font-weight: 500;
+        }
+        
         @media (max-width: 768px) {
             .header {
                 margin-bottom: 15px;
@@ -456,35 +520,10 @@
             .preset-buttons {
                 grid-template-columns: 1fr;
             }
-        }
-        
-        .auto-results {
-            background: rgba(76, 175, 80, 0.1);
-            border-left: 4px solid #4caf50;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: none;
-        }
-        
-        .auto-results.active {
-            display: block;
-        }
-        
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-            font-size: 0.95rem;
-        }
-        
-        .result-label {
-            color: #aaa;
-        }
-        
-        .result-value {
-            color: #4caf50;
-            font-weight: 500;
+            
+            .source-buttons {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -501,13 +540,27 @@
     
     <div class="main-container">
         <div class="image-section">
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📸</div>
-                <div class="upload-text">Tap to select a photo, or drag & drop</div>
+                <div class="upload-text">Select a photo to fix color fringing</div>
             </div>
-            <input type="file" id="fileInput" accept="image/*" capture="environment">
             
-            <button class="button" onclick="autoDetectCA()">
+            <div class="source-buttons">
+                <button class="source-button" onclick="openFilePicker()">
+                    <span class="source-button-icon">📁</span>
+                    Choose from Gallery
+                </button>
+                <button class="source-button primary" onclick="openCamera()">
+                    <span class="source-button-icon">📷</span>
+                    Take Photo
+                </button>
+            </div>
+            
+            <!-- Hidden file inputs -->
+            <input type="file" id="fileInput" accept="image/*">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+            
+            <button class="button" onclick="autoDetectCA()" id="autoDetectBtn">
                 <span class="button-icon">🔍</span>
                 Auto-Detect & Fix
             </button>
@@ -642,13 +695,16 @@
         
         // Initialize UI
         function initUI() {
-            // Setup file input
+            // Setup file inputs
             const fileInput = document.getElementById('fileInput');
-            const uploadArea = document.getElementById('uploadArea');
+            const cameraInput = document.getElementById('cameraInput');
             
             fileInput.addEventListener('change', handleImageUpload);
+            cameraInput.addEventListener('change', handleImageUpload);
             
             // Drag and drop support
+            const uploadArea = document.getElementById('uploadArea');
+            
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
@@ -673,6 +729,9 @@
                 const slider = document.getElementById(sliderId);
                 slider.addEventListener('input', function() {
                     updateSliderDisplay(sliderId, this.value);
+                    // Auto-apply when slider changes (with debounce)
+                    clearTimeout(window.sliderTimeout);
+                    window.sliderTimeout = setTimeout(applyCorrection, 300);
                 });
                 updateSliderDisplay(sliderId, slider.value);
             });
@@ -680,14 +739,16 @@
             // Setup comparison slider
             setupComparisonSlider();
             
-            // Add camera button for mobile
-            if ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
-                const cameraBtn = document.createElement('button');
-                cameraBtn.className = 'button secondary';
-                cameraBtn.innerHTML = '<span class="button-icon">📷</span> Take Photo';
-                cameraBtn.onclick = takePhoto;
-                uploadArea.parentNode.insertBefore(cameraBtn, uploadArea.nextSibling);
-            }
+            // Disable auto-detect button initially
+            document.getElementById('autoDetectBtn').disabled = true;
+        }
+        
+        function openFilePicker() {
+            document.getElementById('fileInput').click();
+        }
+        
+        function openCamera() {
+            document.getElementById('cameraInput').click();
         }
         
         function setupComparisonSlider() {
@@ -705,15 +766,18 @@
                 e.preventDefault();
                 startSliding(e);
             });
+            
             document.addEventListener('touchmove', (e) => {
                 if (!isSliding) return;
                 e.preventDefault();
                 slide(e);
-            });
+            }, { passive: false });
+            
             document.addEventListener('touchend', stopSliding);
             
             function startSliding(e) {
                 isSliding = true;
+                handle.style.transition = 'none';
                 if (e.type === 'touchstart') {
                     e.preventDefault();
                 }
@@ -741,6 +805,7 @@
             
             function stopSliding() {
                 isSliding = false;
+                handle.style.transition = 'left 0.2s ease';
             }
         }
         
@@ -781,6 +846,8 @@
             if (file) {
                 loadImageFile(file);
             }
+            // Reset the input so the same file can be selected again
+            e.target.value = '';
         }
         
         function loadImageFile(file) {
@@ -802,25 +869,6 @@
             reader.readAsDataURL(file);
         }
         
-        async function takePhoto() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
-                });
-                
-                // We'd need a more complex implementation to capture photos
-                // For simplicity, we'll just prompt for file upload
-                alert('Camera capture requires additional implementation. Please use the file picker.');
-                
-                // Stop all video tracks
-                stream.getTracks().forEach(track => track.stop());
-                
-            } catch (error) {
-                console.error('Camera error:', error);
-                alert('Could not access camera. Please upload a photo instead.');
-            }
-        }
-        
         function processImageLoad() {
             // Set canvas dimensions (optimized for mobile)
             const maxDimension = Math.min(800, Math.min(window.innerWidth, window.innerHeight) - 100);
@@ -839,10 +887,17 @@
             // Show image container
             document.getElementById('sideView').classList.add('active');
             
-            // Try auto-detection
+            // Enable auto-detect button
+            document.getElementById('autoDetectBtn').disabled = false;
+            
+            // Update upload area text
+            document.querySelector('.upload-text').textContent = 'Image loaded! Tap Auto-Detect to fix';
+            document.querySelector('.upload-icon').textContent = '✅';
+            
+            // Try auto-detection after a short delay
             setTimeout(() => {
                 autoDetectCA();
-            }, 500);
+            }, 1000);
         }
         
         function updateSliderView() {
@@ -870,6 +925,9 @@
             showLoading('Analyzing image for color fringing...');
             isProcessing = true;
             
+            // Disable buttons during processing
+            document.getElementById('autoDetectBtn').disabled = true;
+            
             try {
                 // Analyze edges for color shifts
                 const analysis = analyzeChromaticAberration();
@@ -896,11 +954,13 @@
                 
                 hideLoading();
                 isProcessing = false;
+                document.getElementById('autoDetectBtn').disabled = false;
                 
             } catch (error) {
                 console.error('Auto-detection error:', error);
                 hideLoading();
                 isProcessing = false;
+                document.getElementById('autoDetectBtn').disabled = false;
                 alert('Auto-detection failed. Please try manual adjustment.');
             }
         }
@@ -919,7 +979,7 @@
             
             // Sample edges at various positions
             const edgeSamples = [];
-            const sampleGrid = 20; // Sample every 20 pixels
+            const sampleGrid = Math.floor(Math.min(originalCanvas.width, originalCanvas.height) / 30);
             
             for (let y = sampleGrid; y < originalCanvas.height - sampleGrid; y += sampleGrid) {
                 for (let x = sampleGrid; x < originalCanvas.width - sampleGrid; x += sampleGrid) {
@@ -927,48 +987,45 @@
                     
                     // Check if this is an edge by comparing with neighbors
                     const leftIdx = (y * originalCanvas.width + (x - 1)) * 4;
-                    const rightIdx = (y * originalCanvas.width + (x + 1)) * 4;
                     
-                    const edgeStrength = Math.abs(data[idx] - data[leftIdx]) + 
-                                        Math.abs(data[idx + 1] - data[leftIdx + 1]) + 
-                                        Math.abs(data[idx + 2] - data[leftIdx + 2]);
+                    // Calculate edge strength (luminance difference)
+                    const leftLum = 0.299 * data[leftIdx] + 0.587 * data[leftIdx + 1] + 0.114 * data[leftIdx + 2];
+                    const currLum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                    const edgeStrength = Math.abs(currLum - leftLum);
                     
-                    if (edgeStrength > 50) { // Strong edge
-                        edgeSamples.push({ x, y, idx });
+                    if (edgeStrength > 30) { // Strong edge
+                        edgeSamples.push({ x, y, idx, edgeStrength });
                     }
                 }
             }
             
+            // Sort by edge strength and take strongest samples
+            edgeSamples.sort((a, b) => b.edgeStrength - a.edgeStrength);
+            const strongestSamples = edgeSamples.slice(0, Math.min(50, edgeSamples.length));
+            
             // Analyze color shifts at edges
-            for (const sample of edgeSamples.slice(0, 100)) { // Limit samples for performance
+            for (const sample of strongestSamples) {
                 const { x, y, idx } = sample;
                 
-                // Check color differences in a small radius
-                const radius = 3;
-                for (let dy = -radius; dy <= radius; dy++) {
-                    for (let dx = -radius; dx <= radius; dx++) {
-                        if (dx === 0 && dy === 0) continue;
-                        
-                        const sampleIdx = ((y + dy) * originalCanvas.width + (x + dx)) * 4;
-                        
-                        // Calculate color difference
-                        const rDiff = Math.abs(data[idx] - data[sampleIdx]);
-                        const gDiff = Math.abs(data[idx + 1] - data[sampleIdx + 1]);
-                        const bDiff = Math.abs(data[idx + 2] - data[sampleIdx + 2]);
-                        
-                        // Detect which channel is most different (likely shifted)
-                        if (rDiff > gDiff && rDiff > bDiff && rDiff > 30) {
-                            redShift += dx; // Red is shifted horizontally
-                            sampleCount++;
-                        }
-                        if (gDiff > rDiff && gDiff > bDiff && gDiff > 30) {
-                            greenShift += dx;
-                            sampleCount++;
-                        }
-                        if (bDiff > rDiff && bDiff > gDiff && bDiff > 30) {
-                            blueShift += dx;
-                            sampleCount++;
-                        }
+                // Check color differences on both sides of the edge
+                for (let dx = -2; dx <= 2; dx++) {
+                    if (dx === 0) continue;
+                    
+                    const sampleIdx = (y * originalCanvas.width + (x + dx)) * 4;
+                    
+                    // Calculate color difference from edge
+                    const rDiff = Math.abs(data[idx] - data[sampleIdx]);
+                    const gDiff = Math.abs(data[idx + 1] - data[sampleIdx + 1]);
+                    const bDiff = Math.abs(data[idx + 2] - data[sampleIdx + 2]);
+                    
+                    // Detect which channel is most different (likely shifted)
+                    const totalDiff = rDiff + gDiff + bDiff;
+                    if (totalDiff > 50) {
+                        // Weight the shift by the difference
+                        redShift += (dx * rDiff) / totalDiff;
+                        greenShift += (dx * gDiff) / totalDiff;
+                        blueShift += (dx * bDiff) / totalDiff;
+                        sampleCount++;
                     }
                 }
             }
@@ -978,11 +1035,11 @@
                 redShift = redShift / sampleCount;
                 greenShift = greenShift / sampleCount;
                 blueShift = blueShift / sampleCount;
-                confidence = Math.min(1, sampleCount / 50);
+                confidence = Math.min(1, sampleCount / 20);
             }
             
-            // Normalize shifts
-            const maxShift = 3;
+            // Normalize shifts (most CA is within ±2 pixels)
+            const maxShift = 2;
             redShift = Math.max(-maxShift, Math.min(maxShift, redShift));
             greenShift = Math.max(-maxShift, Math.min(maxShift, greenShift));
             blueShift = Math.max(-maxShift, Math.min(maxShift, blueShift));
@@ -1008,114 +1065,59 @@
             const blueShift = parseFloat(document.getElementById('blueShift').value);
             const strength = parseFloat(document.getElementById('strength').value) / 100;
             
-            // Create separate canvases for each channel
-            const redCanvas = document.createElement('canvas');
-            const greenCanvas = document.createElement('canvas');
-            const blueCanvas = document.createElement('canvas');
-            const alphaCanvas = document.createElement('canvas');
-            
-            redCanvas.width = greenCanvas.width = blueCanvas.width = alphaCanvas.width = originalCanvas.width;
-            redCanvas.height = greenCanvas.height = blueCanvas.height = alphaCanvas.height = originalCanvas.height;
-            
-            const redCtx = redCanvas.getContext('2d');
-            const greenCtx = greenCanvas.getContext('2d');
-            const blueCtx = blueCanvas.getContext('2d');
-            const alphaCtx = alphaCanvas.getContext('2d');
-            
-            // Draw original image to all canvases
-            redCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
-            greenCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
-            blueCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
-            alphaCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
-            
-            // Extract and shift channels
-            shiftChannel(redCtx, 'red', redShift * strength);
-            shiftChannel(greenCtx, 'green', greenShift * strength);
-            shiftChannel(blueCtx, 'blue', blueShift * strength);
-            
-            // Clear output and composite channels
+            // Clear output and copy original
             outputCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+            outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
             
-            // Draw shifted channels with proper blending
-            outputCtx.globalCompositeOperation = 'source-over';
+            // Get image data
+            const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+            const data = imageData.data;
             
-            // Draw red channel
-            outputCtx.save();
-            outputCtx.globalCompositeOperation = 'multiply';
-            outputCtx.globalAlpha = 1;
-            outputCtx.drawImage(redCanvas, 0, 0);
-            outputCtx.restore();
+            // Create a copy for processing
+            const originalData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            const originalArray = originalData.data;
             
-            // Draw green channel
-            outputCtx.save();
-            outputCtx.globalCompositeOperation = 'multiply';
-            outputCtx.globalAlpha = 1;
-            outputCtx.drawImage(greenCanvas, 0, 0);
-            outputCtx.restore();
+            // Apply channel shifts
+            for (let y = 0; y < outputCanvas.height; y++) {
+                for (let x = 0; x < outputCanvas.width; x++) {
+                    const idx = (y * outputCanvas.width + x) * 4;
+                    
+                    // Calculate shifted positions
+                    const shiftRedX = Math.round(x - redShift * strength);
+                    const shiftGreenX = Math.round(x - greenShift * strength);
+                    const shiftBlueX = Math.round(x - blueShift * strength);
+                    
+                    // Get colors from original at shifted positions
+                    const getColor = (shiftX, channel) => {
+                        if (shiftX < 0 || shiftX >= outputCanvas.width) {
+                            return 0; // Black for out of bounds
+                        }
+                        const shiftIdx = (y * outputCanvas.width + shiftX) * 4;
+                        return originalArray[shiftIdx + channel];
+                    };
+                    
+                    // Blend shifted channels with original
+                    const r = getColor(shiftRedX, 0);
+                    const g = getColor(shiftGreenX, 1);
+                    const b = getColor(shiftBlueX, 2);
+                    
+                    // Keep original alpha
+                    const a = data[idx + 3];
+                    
+                    // Apply to output
+                    data[idx] = r;
+                    data[idx + 1] = g;
+                    data[idx + 2] = b;
+                    data[idx + 3] = a;
+                }
+            }
             
-            // Draw blue channel
-            outputCtx.save();
-            outputCtx.globalCompositeOperation = 'multiply';
-            outputCtx.globalAlpha = 1;
-            outputCtx.drawImage(blueCanvas, 0, 0);
-            outputCtx.restore();
-            
-            // Restore normal composite operation
-            outputCtx.globalCompositeOperation = 'source-over';
+            outputCtx.putImageData(imageData, 0, 0);
             
             // Update comparison view if active
             if (currentMode === 'slider') {
                 updateSliderView();
             }
-        }
-        
-        function shiftChannel(ctx, channel, shift) {
-            if (Math.abs(shift) < 0.1) return;
-            
-            const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-            const data = imageData.data;
-            const shiftedData = new ImageData(ctx.canvas.width, ctx.canvas.height);
-            const shifted = shiftedData.data;
-            
-            // Copy with horizontal shift
-            for (let y = 0; y < ctx.canvas.height; y++) {
-                for (let x = 0; x < ctx.canvas.width; x++) {
-                    const idx = (y * ctx.canvas.width + x) * 4;
-                    const sourceX = Math.round(x - shift);
-                    
-                    if (sourceX >= 0 && sourceX < ctx.canvas.width) {
-                        const sourceIdx = (y * ctx.canvas.width + sourceX) * 4;
-                        
-                        // Copy all channels
-                        shifted[idx] = data[sourceIdx];
-                        shifted[idx + 1] = data[sourceIdx + 1];
-                        shifted[idx + 2] = data[sourceIdx + 2];
-                        shifted[idx + 3] = data[sourceIdx + 3];
-                    } else {
-                        // Set to black for out-of-bounds
-                        shifted[idx] = 0;
-                        shifted[idx + 1] = 0;
-                        shifted[idx + 2] = 0;
-                        shifted[idx + 3] = 255;
-                    }
-                }
-            }
-            
-            // Zero out other channels based on which channel we're shifting
-            for (let i = 0; i < shifted.length; i += 4) {
-                if (channel === 'red') {
-                    shifted[i + 1] = 0; // Zero green
-                    shifted[i + 2] = 0; // Zero blue
-                } else if (channel === 'green') {
-                    shifted[i] = 0;     // Zero red
-                    shifted[i + 2] = 0; // Zero blue
-                } else if (channel === 'blue') {
-                    shifted[i] = 0;     // Zero red
-                    shifted[i + 1] = 0; // Zero green
-                }
-            }
-            
-            ctx.putImageData(shiftedData, 0, 0);
         }
         
         function applyManualCorrection() {
@@ -1176,17 +1178,79 @@
                 return;
             }
             
+            // Create a temporary link
             const link = document.createElement('a');
-            link.download = 'corrected-photo.png';
+            link.download = `ca-fixed-${Date.now()}.png`;
             link.href = outputCanvas.toDataURL('image/png');
             
-            // For mobile devices
-            if (/iPad|iPhone|iPod|Android/.test(navigator.userAgent)) {
+            // For iOS devices
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
                 const newWindow = window.open();
-                newWindow.document.write(`<img src="${link.href}" style="max-width: 100%;">`);
+                newWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Save Image</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <style>
+                            body { 
+                                font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+                                padding: 20px; 
+                                text-align: center; 
+                                background: #f5f5f5;
+                            }
+                            img { 
+                                max-width: 100%; 
+                                height: auto; 
+                                border-radius: 10px;
+                                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                margin: 20px 0;
+                            }
+                            .instructions { 
+                                background: white; 
+                                padding: 15px; 
+                                border-radius: 10px; 
+                                margin: 20px 0;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                            }
+                            button { 
+                                background: #007AFF; 
+                                color: white; 
+                                border: none; 
+                                padding: 12px 24px; 
+                                border-radius: 8px; 
+                                font-size: 16px; 
+                                margin: 10px; 
+                                cursor: pointer;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>Save Corrected Image</h2>
+                        <img src="${link.href}" alt="Corrected Image">
+                        <div class="instructions">
+                            <p><strong>To save:</strong></p>
+                            <p>1. Tap and hold the image above</p>
+                            <p>2. Select "Save Image" from the menu</p>
+                        </div>
+                        <button onclick="window.close()">Close</button>
+                    </body>
+                    </html>
+                `);
                 newWindow.document.close();
-            } else {
-                link.click();
+            } 
+            // For Android and desktop
+            else {
+                // Create a temporary click event
+                const event = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                link.dispatchEvent(event);
+                
+                // Show a success message
+                alert('Image saved! Check your downloads folder.');
             }
         }
         
@@ -1202,13 +1266,27 @@
         // Initialize the app
         initUI();
         
-        // Add touch feedback for buttons
-        document.addEventListener('touchstart', function() {}, {passive: true});
-        
         // Prevent zoom on double-tap
-        document.addEventListener('dblclick', function(e) {
-            e.preventDefault();
-        }, { passive: false });
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Add vibration feedback on mobile (optional)
+        function vibrate() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(50);
+            }
+        }
+        
+        // Add vibration to buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchstart', vibrate);
+        });
     </script>
 </body>
 </html>
