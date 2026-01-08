@@ -397,6 +397,7 @@
             background: rgba(30, 30, 30, 0.9);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
         }
         
         .fullscreen-close {
@@ -412,6 +413,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            z-index: 11;
         }
         
         .fullscreen-close:active {
@@ -445,6 +447,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            z-index: 11;
         }
         
         .fullscreen-control-btn:active {
@@ -516,6 +519,27 @@
             font-size: 20px;
             color: #333;
             font-weight: bold;
+        }
+        
+        .fullscreen-slider-labels {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .fullscreen-slider-label {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
         }
         
         .loading {
@@ -923,7 +947,7 @@
             <div class="mode-selector">
                 <button class="mode-button active" id="modeSide" onclick="switchMode('side')">Side-by-Side</button>
                 <button class="mode-button" id="modeSlider" onclick="switchMode('slider')">Comparison Slider</button>
-                <button class="mode-button" id="modeFull" onclick="switchMode('full')">Full-Screen Preview</button>
+                <button class="mode-button" id="modeFull" onclick="enterFullscreen()">Full-Screen Preview</button>
             </div>
             
             <div class="image-container" id="sideView">
@@ -967,6 +991,10 @@
                         <img id="fullscreen-before" class="fullscreen-image" alt="Original">
                         <img id="fullscreen-after" class="fullscreen-image" alt="Corrected" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
                         <div class="fullscreen-slider-handle" id="fullscreenSliderHandle"></div>
+                        <div class="fullscreen-slider-labels">
+                            <div class="fullscreen-slider-label">Before</div>
+                            <div class="fullscreen-slider-label">After</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1051,7 +1079,6 @@
         let outputCtx = outputCanvas.getContext('2d');
         let currentMode = 'side';
         let isProcessing = false;
-        let zoomLevel = 1;
         let isFullscreenSlider = false;
         let exportSize = 'original';
         
@@ -1091,9 +1118,6 @@
                 const slider = document.getElementById(sliderId);
                 slider.addEventListener('input', function() {
                     updateSliderDisplay(sliderId, this.value);
-                    // Auto-apply when slider changes (with debounce)
-                    clearTimeout(window.sliderTimeout);
-                    window.sliderTimeout = setTimeout(applyCorrection, 300);
                 });
                 updateSliderDisplay(sliderId, slider.value);
             });
@@ -1277,20 +1301,36 @@
             // Show/hide views
             document.getElementById('sideView').classList.toggle('active', mode === 'side');
             document.getElementById('sliderView').classList.toggle('active', mode === 'slider');
-            document.getElementById('fullscreenView').classList.toggle('active', mode === 'full');
             
             if (originalImage) {
                 if (mode === 'slider') {
                     updateSliderView();
-                } else if (mode === 'full') {
-                    updateFullscreenView();
                 }
             }
         }
         
+        function enterFullscreen() {
+            if (!originalImage) {
+                alert('Please upload an image first');
+                return;
+            }
+            
+            document.getElementById('fullscreenView').classList.add('active');
+            document.getElementById('modeFull').classList.add('active');
+            
+            // Reset slider state when entering fullscreen
+            isFullscreenSlider = false;
+            document.getElementById('fullscreenSlider').classList.remove('active');
+            document.getElementById('fullscreen-image').style.display = 'block';
+            document.getElementById('fullscreenToggle').textContent = '⇄';
+            
+            updateFullscreenView();
+        }
+        
         function exitFullscreen() {
-            // Reset zoom when exiting
-            zoomLevel = 1;
+            document.getElementById('fullscreenView').classList.remove('active');
+            document.getElementById('modeFull').classList.remove('active');
+            document.getElementById('modeSide').classList.add('active');
             
             // Return to side-by-side view
             switchMode('side');
@@ -1301,9 +1341,14 @@
             const fullscreenBefore = document.getElementById('fullscreen-before');
             const fullscreenAfter = document.getElementById('fullscreen-after');
             
+            // Use the actual output canvas data
             fullscreenImage.src = outputCanvas.toDataURL();
             fullscreenBefore.src = originalCanvas.toDataURL();
             fullscreenAfter.src = outputCanvas.toDataURL();
+            
+            // Reset slider position
+            fullscreenAfter.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0 100%)';
+            document.getElementById('fullscreenSliderHandle').style.left = '50%';
         }
         
         function handleImageUpload(e) {
@@ -1369,11 +1414,6 @@
             
             // Update export modal with original size
             updateExportSizeDisplay();
-            
-            // Try auto-detection after a short delay
-            setTimeout(() => {
-                autoDetectCA();
-            }, 1000);
         }
         
         function updateSliderView() {
@@ -1566,7 +1606,7 @@
                     // Get colors from original at shifted positions
                     const getColor = (shiftX, channel) => {
                         if (shiftX < 0 || shiftX >= outputCanvas.width) {
-                            return 0; // Black for out of bounds
+                            return originalArray[idx + channel]; // Use original color for out of bounds
                         }
                         const shiftIdx = (y * outputCanvas.width + shiftX) * 4;
                         return originalArray[shiftIdx + channel];
@@ -1593,7 +1633,10 @@
             // Update comparison view if active
             if (currentMode === 'slider') {
                 updateSliderView();
-            } else if (currentMode === 'full') {
+            }
+            
+            // Update fullscreen view if active
+            if (document.getElementById('fullscreenView').classList.contains('active')) {
                 updateFullscreenView();
             }
         }
@@ -1646,7 +1689,8 @@
                 outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
                 if (currentMode === 'slider') {
                     updateSliderView();
-                } else if (currentMode === 'full') {
+                }
+                if (document.getElementById('fullscreenView').classList.contains('active')) {
                     updateFullscreenView();
                 }
             }
@@ -1795,7 +1839,7 @@
                                 // Get colors from original at shifted positions
                                 const getColor = (shiftX, channel) => {
                                     if (shiftX < 0 || shiftX >= targetWidth) {
-                                        return 0; // Black for out of bounds
+                                        return originalArray[idx + channel]; // Use original color for out of bounds
                                     }
                                     const shiftIdx = (y * targetWidth + shiftX) * 4;
                                     return originalArray[shiftIdx + channel];
