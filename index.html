@@ -464,14 +464,21 @@
             border-radius: 12px;
             background: #000;
             touch-action: none;
+            cursor: grab;
+        }
+        
+        .fullscreen-image-container:active {
+            cursor: grabbing;
         }
         
         .fullscreen-image {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            transition: transform 0.3s ease;
+            transition: transform 0.1s ease-out;
             touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .fullscreen-slider-container {
@@ -987,7 +994,7 @@
                         <button class="fullscreen-control-btn" onclick="resetZoom()">↻</button>
                     </div>
                 </div>
-                <div class="fullscreen-image-container">
+                <div class="fullscreen-image-container" id="fullscreen-image-container">
                     <!-- Single image view -->
                     <img id="fullscreen-image" class="fullscreen-image" alt="Corrected Image">
                     
@@ -1148,11 +1155,14 @@
         
         function setupPinchToZoom() {
             const fullscreenImage = document.getElementById('fullscreen-image');
-            const fullscreenContainer = document.getElementById('fullscreen-image-container');
+            const fullscreenImageContainer = document.getElementById('fullscreen-image-container');
             
             let initialDistance = 0;
             let initialZoom = 1;
             let isPinching = false;
+            let isPanning = false;
+            let lastTouchX = 0;
+            let lastTouchY = 0;
             
             // Touch events for pinch-to-zoom
             fullscreenImage.addEventListener('touchstart', (e) => {
@@ -1165,6 +1175,11 @@
                         touch2.clientY - touch1.clientY
                     );
                     initialZoom = zoomLevel;
+                    e.preventDefault();
+                } else if (e.touches.length === 1 && zoomLevel > 1) {
+                    isPanning = true;
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
                     e.preventDefault();
                 }
             });
@@ -1185,20 +1200,47 @@
                     // Update image transform
                     updateImageZoom();
                     e.preventDefault();
+                } else if (e.touches.length === 1 && isPanning) {
+                    const touchX = e.touches[0].clientX;
+                    const touchY = e.touches[0].clientY;
+                    
+                    const deltaX = touchX - lastTouchX;
+                    const deltaY = touchY - lastTouchY;
+                    
+                    // Calculate pan boundaries based on zoom level
+                    const maxPanX = (fullscreenImage.width * (zoomLevel - 1)) / 2;
+                    const maxPanY = (fullscreenImage.height * (zoomLevel - 1)) / 2;
+                    
+                    zoomX = Math.max(-maxPanX, Math.min(maxPanX, zoomX + deltaX));
+                    zoomY = Math.max(-maxPanY, Math.min(maxPanY, zoomY + deltaY));
+                    
+                    lastTouchX = touchX;
+                    lastTouchY = touchY;
+                    
+                    updateImageZoom();
+                    e.preventDefault();
                 }
             });
             
             fullscreenImage.addEventListener('touchend', () => {
                 isPinching = false;
+                isPanning = false;
             });
             
-            // Double tap to reset zoom
+            // Double tap to toggle zoom
             let lastTap = 0;
             fullscreenImage.addEventListener('touchend', (e) => {
                 const currentTime = new Date().getTime();
                 const tapLength = currentTime - lastTap;
-                if (tapLength < 300 && tapLength > 0) {
-                    resetZoom();
+                if (tapLength < 300 && tapLength > 0 && e.touches.length === 0) {
+                    if (zoomLevel === 1) {
+                        // Zoom in to 2x
+                        zoomLevel = 2;
+                    } else {
+                        // Reset zoom
+                        resetZoom();
+                    }
+                    updateImageZoom();
                     e.preventDefault();
                 }
                 lastTap = currentTime;
@@ -1403,6 +1445,11 @@
                     updateSliderView();
                 }
             }
+            
+            // If entering fullscreen mode, don't hide the fullscreen button
+            if (mode !== 'full') {
+                document.getElementById('modeFull').classList.remove('active');
+            }
         }
         
         function enterFullscreen() {
@@ -1457,6 +1504,9 @@
             if (document.getElementById('fullscreenSliderHandle')) {
                 document.getElementById('fullscreenSliderHandle').style.left = '50%';
             }
+            
+            // Reset zoom when updating view
+            resetZoom();
         }
         
         function handleImageUpload(e) {
@@ -1888,158 +1938,158 @@
                                 };
                                 
                                 // Apply shifted colors
-                                data[idx] = getShiftedColor(shiftRedX, 0);
-                                data[idx + 1] = getShiftedColor(shiftGreenX, 1);
-                                data[idx + 2] = getShiftedColor(shiftBlueX, 2);
+                                    data[idx] = getShiftedColor(shiftRedX, 0);
+                                    data[idx + 1] = getShiftedColor(shiftGreenX, 1);
+                                    data[idx + 2] = getShiftedColor(shiftBlueX, 2);
+                                }
                             }
-                        }
-                        
-                        highResCtx.putImageData(imageData, 0, 0);
-                        
-                        // Create download link
-                        const link = document.createElement('a');
-                        const timestamp = new Date().getTime();
-                        link.download = `ca-fixed-${targetWidth}x${targetHeight}-${timestamp}.png`;
-                        link.href = highResCanvas.toDataURL('image/png', 1.0);
-                        
-                        // For iOS devices
-                        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
-                            const newWindow = window.open();
-                            newWindow.document.write(`
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                    <title>Save Image</title>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                    <style>
-                                        body { 
-                                            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-                                            padding: 20px; 
-                                            text-align: center; 
-                                            background: #f5f5f5;
-                                        }
-                                        img { 
-                                            max-width: 100%; 
-                                            height: auto; 
-                                            border-radius: 10px;
-                                            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                                            margin: 20px 0;
-                                        }
-                                        .instructions { 
-                                            background: white; 
-                                            padding: 15px; 
-                                            border-radius: 10px; 
-                                            margin: 20px 0;
-                                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                                        }
-                                        .size-info {
-                                            background: white;
-                                            padding: 10px 15px;
-                                            border-radius: 8px;
-                                            margin: 10px 0;
-                                            font-size: 14px;
-                                            color: #666;
-                                        }
-                                        button { 
-                                            background: #007AFF; 
-                                            color: white; 
-                                            border: none; 
-                                            padding: 12px 24px; 
-                                            border-radius: 8px; 
-                                            font-size: 16px; 
-                                            margin: 10px; 
-                                            cursor: pointer;
-                                        }
-                                    </style>
-                                </head>
-                                <body>
-                                    <h2>Save Corrected Image</h2>
-                                    <div class="size-info">Size: ${targetWidth}×${targetHeight} pixels</div>
-                                    <img src="${link.href}" alt="Corrected Image">
-                                    <div class="instructions">
-                                        <p><strong>To save:</strong></p>
-                                        <p>1. Tap and hold the image above</p>
-                                        <p>2. Select "Save Image" from the menu</p>
-                                    </div>
-                                    <button onclick="window.close()">Close</button>
-                                </body>
-                                </html>
-                            `);
-                            newWindow.document.close();
-                        } else {
-                            // For Android and desktop
-                            const event = new MouseEvent('click', {
-                                view: window,
-                                bubbles: true,
-                                cancelable: true
-                            });
-                            link.dispatchEvent(event);
                             
-                            // Show a success message
-                            setTimeout(() => {
-                                alert(`Image saved! Size: ${targetWidth}×${targetHeight} pixels`);
-                            }, 500);
-                        }
+                            highResCtx.putImageData(imageData, 0, 0);
+                            
+                            // Create download link
+                            const link = document.createElement('a');
+                            const timestamp = new Date().getTime();
+                            link.download = `ca-fixed-${targetWidth}x${targetHeight}-${timestamp}.png`;
+                            link.href = highResCanvas.toDataURL('image/png', 1.0);
+                            
+                            // For iOS devices
+                            if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+                                const newWindow = window.open();
+                                newWindow.document.write(`
+                                    <!DOCTYPE html>
+                                    <html>
+                                    <head>
+                                        <title>Save Image</title>
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                        <style>
+                                            body { 
+                                                font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+                                                padding: 20px; 
+                                                text-align: center; 
+                                                background: #f5f5f5;
+                                            }
+                                            img { 
+                                                max-width: 100%; 
+                                                height: auto; 
+                                                border-radius: 10px;
+                                                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                                margin: 20px 0;
+                                            }
+                                            .instructions { 
+                                                background: white; 
+                                                padding: 15px; 
+                                                border-radius: 10px; 
+                                                margin: 20px 0;
+                                                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                            }
+                                            .size-info {
+                                                background: white;
+                                                padding: 10px 15px;
+                                                border-radius: 8px;
+                                                margin: 10px 0;
+                                                font-size: 14px;
+                                                color: #666;
+                                            }
+                                            button { 
+                                                background: #007AFF; 
+                                                color: white; 
+                                                border: none; 
+                                                padding: 12px 24px; 
+                                                border-radius: 8px; 
+                                                font-size: 16px; 
+                                                margin: 10px; 
+                                                cursor: pointer;
+                                            }
+                                        </style>
+                                    </head>
+                                    <body>
+                                        <h2>Save Corrected Image</h2>
+                                        <div class="size-info">Size: ${targetWidth}×${targetHeight} pixels</div>
+                                        <img src="${link.href}" alt="Corrected Image">
+                                        <div class="instructions">
+                                            <p><strong>To save:</strong></p>
+                                            <p>1. Tap and hold the image above</p>
+                                            <p>2. Select "Save Image" from the menu</p>
+                                        </div>
+                                        <button onclick="window.close()">Close</button>
+                                    </body>
+                                    </html>
+                                `);
+                                newWindow.document.close();
+                            } else {
+                                // For Android and desktop
+                                const event = new MouseEvent('click', {
+                                    view: window,
+                                    bubbles: true,
+                                    cancelable: true
+                                });
+                                link.dispatchEvent(event);
+                                
+                                // Show a success message
+                                setTimeout(() => {
+                                    alert(`Image saved! Size: ${targetWidth}×${targetHeight} pixels`);
+                                }, 500);
+                            }
+                            
+                            hideLoading();
+                        };
                         
+                        highResImage.src = originalImageData.src;
+                        
+                    } catch (error) {
+                        console.error('Download error:', error);
                         hideLoading();
-                    };
-                    
-                    highResImage.src = originalImageData.src;
-                    
-                } catch (error) {
-                    console.error('Download error:', error);
-                    hideLoading();
-                    alert('Error preparing download. Please try again.');
+                        alert('Error preparing download. Please try again.');
+                    }
+                }, 100);
+            }
+            
+            function showLoading(text) {
+                document.getElementById('loadingText').textContent = text;
+                document.getElementById('loading').classList.add('active');
+            }
+            
+            function hideLoading() {
+                document.getElementById('loading').classList.remove('active');
+            }
+            
+            // Initialize the app
+            initUI();
+            
+            // Prevent zoom on double-tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
                 }
-            }, 100);
-        }
-        
-        function showLoading(text) {
-            document.getElementById('loadingText').textContent = text;
-            document.getElementById('loading').classList.add('active');
-        }
-        
-        function hideLoading() {
-            document.getElementById('loading').classList.remove('active');
-        }
-        
-        // Initialize the app
-        initUI();
-        
-        // Prevent zoom on double-tap
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(event) {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
+                lastTouchEnd = now;
+            }, false);
+            
+            // Add vibration feedback on mobile (optional)
+            function vibrate() {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
             }
-            lastTouchEnd = now;
-        }, false);
-        
-        // Add vibration feedback on mobile (optional)
-        function vibrate() {
-            if ('vibrate' in navigator) {
-                navigator.vibrate(50);
-            }
-        }
-        
-        // Add vibration to buttons
-        document.querySelectorAll('button').forEach(button => {
-            button.addEventListener('touchstart', vibrate);
-        });
-        
-        // Test function to verify correction works
-        window.testCorrection = function() {
-            console.log("Testing correction...");
-            document.getElementById('redShift').value = 2;
-            document.getElementById('greenShift').value = -1;
-            document.getElementById('blueShift').value = 1.5;
-            updateSliderDisplay('redShift', 2);
-            updateSliderDisplay('greenShift', -1);
-            updateSliderDisplay('blueShift', 1.5);
-            applyCorrection();
-            alert("Test correction applied. You should see color shifts in the 'After' image.");
-        };
-    </script>
-</body>
+            
+            // Add vibration to buttons
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('touchstart', vibrate);
+            });
+            
+            // Test function to verify correction works
+            window.testCorrection = function() {
+                console.log("Testing correction...");
+                document.getElementById('redShift').value = 2;
+                document.getElementById('greenShift').value = -1;
+                document.getElementById('blueShift').value = 1.5;
+                updateSliderDisplay('redShift', 2);
+                updateSliderDisplay('greenShift', -1);
+                updateSliderDisplay('blueShift', 1.5);
+                applyCorrection();
+                alert("Test correction applied. You should see color shifts in the 'After' image.");
+            };
+        </script>
+    </body>
 </html>
