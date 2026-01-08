@@ -2,149 +2,306 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color Fringing Corrector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CA Fix - Mobile Lens Corrector</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .control-panel {
-            flex: 1;
-            min-width: 300px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .image-panel {
-            flex: 2;
-            min-width: 300px;
-        }
-        canvas {
-            max-width: 100%;
-            border: 1px solid #ccc;
-            background: #fff;
-            border-radius: 5px;
-        }
-        .controls {
-            margin: 20px 0;
-        }
-        label {
-            display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
-        }
-        input[type="range"] {
-            width: 100%;
-            margin-bottom: 15px;
-        }
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .value-display {
-            min-width: 40px;
-            text-align: right;
-            font-weight: bold;
-            color: #2196F3;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 5px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background: #45a049;
-        }
-        .hint {
-            color: #666;
-            font-size: 14px;
-            margin-top: 20px;
-            line-height: 1.4;
-        }
-        .comparison {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .comparison canvas {
-            flex: 1;
-        }
-        .preset-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        .preset-buttons button {
-            background: #2196F3;
-            flex: 1;
-            min-width: 120px;
-        }
-        .preset-buttons button:hover {
-            background: #0b7dda;
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         
-        /* Before/After Slider Styles */
-        .comparison-container {
-            position: relative;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: #121212;
+            color: #fff;
+            max-width: 100vw;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #64b5f6;
+        }
+        
+        .subtitle {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 100vw;
+        }
+        
+        .image-section {
+            background: #1e1e1e;
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .upload-area {
             width: 100%;
-            height: 500px;
-            margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            height: 150px;
+            border: 3px dashed #64b5f6;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(100, 181, 246, 0.05);
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            background: rgba(100, 181, 246, 0.15);
+            border-color: #2196f3;
+        }
+        
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #64b5f6;
+        }
+        
+        .upload-text {
+            font-size: 1rem;
+            color: #aaa;
+            text-align: center;
+            padding: 0 10px;
+        }
+        
+        input[type="file"] {
             display: none;
         }
+        
+        .button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #64b5f6, #2196f3);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            transition: transform 0.2s, opacity 0.2s;
+            touch-action: manipulation;
+        }
+        
+        .button:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+        
+        .button.secondary {
+            background: linear-gradient(135deg, #424242, #616161);
+        }
+        
+        .button.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+        
+        .button.success {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+        
+        .button-icon {
+            font-size: 1.2rem;
+        }
+        
+        .controls-section {
+            background: #1e1e1e;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .value-display {
+            background: #333;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            min-width: 50px;
+            text-align: center;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 3px solid #121212;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            border: 3px solid #121212;
+        }
+        
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .preset-button {
+            padding: 14px;
+            background: #333;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .preset-button:active {
+            background: #444;
+            transform: scale(0.98);
+        }
+        
+        .preset-button.active {
+            background: #64b5f6;
+            color: white;
+        }
+        
+        .preset-icon {
+            font-size: 1.5rem;
+        }
+        
+        .image-container {
+            position: relative;
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            display: none;
+        }
+        
+        .image-container.active {
+            display: block;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            object-fit: contain;
+        }
+        
+        .comparison-slider-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            touch-action: none;
+        }
+        
+        .comparison-slider-container.active {
+            display: block;
+        }
+        
         .comparison-image {
             position: absolute;
             width: 100%;
             height: 100%;
             object-fit: contain;
         }
+        
         #image-after {
             clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
         }
-        .comparison-slider {
+        
+        .comparison-handle {
             position: absolute;
             top: 0;
             bottom: 0;
             left: 50%;
             width: 4px;
             background: white;
-            cursor: ew-resize;
             transform: translateX(-50%);
             z-index: 10;
+            cursor: ew-resize;
+            touch-action: none;
         }
-        .comparison-slider::before {
+        
+        .comparison-handle::before {
             content: "";
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             background: white;
             border-radius: 50%;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.4);
         }
-        .comparison-slider::after {
+        
+        .comparison-handle::after {
             content: "↔";
             position: absolute;
             top: 50%;
@@ -152,7 +309,9 @@
             transform: translate(-50%, -50%);
             font-size: 20px;
             color: #333;
+            font-weight: bold;
         }
+        
         .comparison-labels {
             position: absolute;
             top: 20px;
@@ -163,188 +322,311 @@
             z-index: 5;
             pointer-events: none;
         }
+        
         .comparison-label {
             background: rgba(0,0,0,0.7);
             color: white;
             padding: 8px 16px;
             border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        .view-toggle {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        .view-toggle button {
-            background: #666;
-            flex: 1;
-            max-width: 200px;
-        }
-        .view-toggle button.active {
-            background: #4CAF50;
-        }
-        .view-toggle button:hover:not(.active) {
-            background: #777;
+            font-weight: 600;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
         }
         
-        /* Debug overlay */
-        .debug-overlay {
-            position: absolute;
+        .loading {
+            position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            pointer-events: none;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading.active {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #333;
+            border-top: 5px solid #64b5f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: white;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        
+        .mode-selector {
+            display: flex;
+            background: #333;
+            border-radius: 12px;
+            padding: 4px;
+            margin: 20px 0;
+        }
+        
+        .mode-button {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: #aaa;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .mode-button.active {
+            background: #64b5f6;
+            color: white;
+        }
+        
+        .hint {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 4px solid #64b5f6;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .hint strong {
+            color: #64b5f6;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                margin-bottom: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .upload-area {
+                height: 120px;
+            }
+            
+            .upload-icon {
+                font-size: 2rem;
+            }
+            
+            .preset-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .comparison-slider-container {
+                height: 250px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .controls-section, .image-section {
+                padding: 15px;
+            }
+            
+            .button {
+                padding: 14px;
+                font-size: 1rem;
+            }
+            
+            .preset-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .auto-results {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
             display: none;
         }
         
-        .test-image {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #666;
-            cursor: pointer;
-            text-decoration: underline;
+        .auto-results.active {
+            display: block;
         }
         
-        .test-image:hover {
-            color: #2196F3;
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.95rem;
         }
         
-        .correction-type {
-            margin-top: 15px;
-            padding: 10px;
-            background: #f0f0f0;
-            border-radius: 5px;
+        .result-label {
+            color: #aaa;
         }
         
-        .correction-type select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
+        .result-value {
+            color: #4caf50;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
-    <h1>Lens Color Fringing Corrector</h1>
-    <div class="container">
-        <div class="control-panel">
-            <h2>Controls</h2>
-            
-            <div class="view-toggle">
-                <button id="view-side" class="active" onclick="switchView('side')">Side-by-Side</button>
-                <button id="view-slider" onclick="switchView('slider')">Before/After Slider</button>
+    <div class="header">
+        <h1>📱 CA Fix</h1>
+        <div class="subtitle">Fix lens color fringing on your photos</div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Processing image...</div>
+    </div>
+    
+    <div class="main-container">
+        <div class="image-section">
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Tap to select a photo, or drag & drop</div>
             </div>
+            <input type="file" id="fileInput" accept="image/*" capture="environment">
             
-            <div class="correction-type">
-                <label>Correction Method:</label>
-                <select id="method" onchange="changeMethod()">
-                    <option value="simple">Simple Color Shift</option>
-                    <option value="advanced">Advanced Edge Correction</option>
-                    <option value="manual">Manual Channel Alignment</option>
-                </select>
-            </div>
+            <button class="button" onclick="autoDetectCA()">
+                <span class="button-icon">🔍</span>
+                Auto-Detect & Fix
+            </button>
             
-            <div class="preset-buttons">
-                <button onclick="applyPreset('redcyan')">Red/Cyan Fringe</button>
-                <button onclick="applyPreset('greenmagenta')">Green/Magenta</button>
-                <button onclick="applyPreset('blueyellow')">Blue/Yellow</button>
-                <button onclick="resetCorrections()">Reset All</button>
-            </div>
-            
-            <div class="controls">
-                <label>Red Channel Shift (X): <span id="redValue" class="value-display">0</span></label>
-                <div class="slider-container">
-                    <input type="range" id="redShiftX" min="-10" max="10" value="0" step="0.5">
+            <div class="auto-results" id="autoResults">
+                <div style="color: #4caf50; font-weight: 600; margin-bottom: 10px;">🎯 Auto-detection Results:</div>
+                <div class="result-item">
+                    <span class="result-label">Red Shift:</span>
+                    <span class="result-value" id="autoRed">0px</span>
                 </div>
-                
-                <label>Red Channel Shift (Y): <span id="redYValue" class="value-display">0</span></label>
-                <div class="slider-container">
-                    <input type="range" id="redShiftY" min="-10" max="10" value="0" step="0.5">
+                <div class="result-item">
+                    <span class="result-label">Green Shift:</span>
+                    <span class="result-value" id="autoGreen">0px</span>
                 </div>
-                
-                <label>Green Channel Shift (X): <span id="greenValue" class="value-display">0</span></label>
-                <div class="slider-container">
-                    <input type="range" id="greenShiftX" min="-10" max="10" value="0" step="0.5">
+                <div class="result-item">
+                    <span class="result-label">Blue Shift:</span>
+                    <span class="result-value" id="autoBlue">0px</span>
                 </div>
-                
-                <label>Green Channel Shift (Y): <span id="greenYValue" class="value-display">0</span></label>
-                <div class="slider-container">
-                    <input type="range" id="greenShiftY" min="-10" max="10" value="0" step="0.5">
-                </div>
-                
-                <label>Blue Channel Shift (X): <span id="blueValue" class="value-display">0</span></label>
-                <div class="slider-container">
-                    <input type="range" id="blueShiftX" min="-10" max="10" value="0" step="0.5">
-                </div>
-                
-                <label>Blue Channel Shift (Y): <span id="blueYValue" class="value-display">0</span></label>
-                <div class="slider-container">
-                    <input type="range" id="blueShiftY" min="-10" max="10" value="0" step="0.5">
-                </div>
-                
-                <label>Correction Strength: <span id="strengthValue" class="value-display">1.0</span></label>
-                <div class="slider-container">
-                    <input type="range" id="strength" min="0" max="200" value="100" step="1">
-                </div>
-                
-                <label>Edge Detection Threshold: <span id="thresholdValue" class="value-display">30</span></label>
-                <div class="slider-container">
-                    <input type="range" id="threshold" min="5" max="100" value="30" step="1">
+                <div class="result-item">
+                    <span class="result-label">Confidence:</span>
+                    <span class="result-value" id="autoConfidence">0%</span>
                 </div>
             </div>
             
-            <div>
-                <button onclick="processImage()" style="background: #2196F3;">Apply Correction</button>
-                <button onclick="downloadImage()" style="background: #FF9800;">Download Result</button>
-                <button onclick="showDebug()" style="background: #9C27B0;">Show Debug View</button>
+            <div class="mode-selector">
+                <button class="mode-button active" id="modeSide" onclick="switchMode('side')">Side-by-Side</button>
+                <button class="mode-button" id="modeSlider" onclick="switchMode('slider')">Comparison Slider</button>
             </div>
             
-            <div class="test-image" onclick="loadTestImage()">
-                💡 Load a test image with chromatic aberration
-            </div>
-            
-            <div class="hint">
-                <h3>How to use:</h3>
-                <ol>
-                    <li>Upload an image or use the test image</li>
-                    <li>Select a correction method</li>
-                    <li>Adjust the color channel shifts</li>
-                    <li>Use presets for common fringing types</li>
-                    <li>Click "Apply Correction" to see changes</li>
-                </ol>
-                <p><strong>Tip:</strong> For red fringing, shift red channel inward. For blue fringing, shift blue channel inward.</p>
-            </div>
-        </div>
-        
-        <div class="image-panel">
-            <h2>Image Processing</h2>
-            <input type="file" id="imageInput" accept="image/*">
-            
-            <!-- Side-by-Side View -->
-            <div id="sideView" class="comparison">
-                <div>
-                    <h3>Original</h3>
-                    <canvas id="originalCanvas"></canvas>
-                </div>
-                <div>
-                    <h3>Corrected</h3>
-                    <canvas id="outputCanvas"></canvas>
+            <div class="image-container" id="sideView">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <div style="color: #aaa; font-size: 0.9rem; margin-bottom: 5px;">Before</div>
+                        <canvas id="originalCanvas"></canvas>
+                    </div>
+                    <div>
+                        <div style="color: #aaa; font-size: 0.9rem; margin-bottom: 5px;">After</div>
+                        <canvas id="outputCanvas"></canvas>
+                    </div>
                 </div>
             </div>
             
-            <!-- Before/After Slider View -->
-            <div id="sliderView" class="comparison-container">
-                <img id="image-before" class="comparison-image" alt="Original image">
-                <img id="image-after" class="comparison-image" alt="Corrected image">
-                <div class="comparison-slider" id="comparison-slider"></div>
+            <div class="comparison-slider-container" id="sliderView">
+                <img id="image-before" class="comparison-image" alt="Original">
+                <img id="image-after" class="comparison-image" alt="Corrected">
+                <div class="comparison-handle" id="comparisonHandle"></div>
                 <div class="comparison-labels">
                     <div class="comparison-label">Before</div>
                     <div class="comparison-label">After</div>
                 </div>
+            </div>
+            
+            <button class="button secondary" onclick="saveImage()">
+                <span class="button-icon">💾</span>
+                Save Corrected Photo
+            </button>
+        </div>
+        
+        <div class="controls-section">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Manual Adjustment</h3>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Red Channel Shift</span>
+                    <span class="value-display" id="redValue">0px</span>
+                </div>
+                <input type="range" class="slider" id="redShift" min="-5" max="5" value="0" step="0.1">
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Green Channel Shift</span>
+                    <span class="value-display" id="greenValue">0px</span>
+                </div>
+                <input type="range" class="slider" id="greenShift" min="-5" max="5" value="0" step="0.1">
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Blue Channel Shift</span>
+                    <span class="value-display" id="blueValue">0px</span>
+                </div>
+                <input type="range" class="slider" id="blueShift" min="-5" max="5" value="0" step="0.1">
+            </div>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Correction Strength</span>
+                    <span class="value-display" id="strengthValue">100%</span>
+                </div>
+                <input type="range" class="slider" id="strength" min="0" max="200" value="100" step="1">
+            </div>
+            
+            <div class="preset-buttons">
+                <button class="preset-button" onclick="applyPreset('redcyan')">
+                    <span class="preset-icon">🔴</span>
+                    Red/Cyan
+                </button>
+                <button class="preset-button" onclick="applyPreset('greenmagenta')">
+                    <span class="preset-icon">🟢</span>
+                    Green/Magenta
+                </button>
+                <button class="preset-button" onclick="applyPreset('blueyellow')">
+                    <span class="preset-icon">🔵</span>
+                    Blue/Yellow
+                </button>
+                <button class="preset-button" onclick="resetControls()">
+                    <span class="preset-icon">🔄</span>
+                    Reset All
+                </button>
+            </div>
+            
+            <button class="button success" onclick="applyManualCorrection()">
+                <span class="button-icon">✨</span>
+                Apply Manual Correction
+            </button>
+            
+            <div class="hint">
+                <strong>💡 Pro Tip:</strong> Start with Auto-Detect, then fine-tune manually. Chromatic aberration appears as colored edges around high-contrast areas.
             </div>
         </div>
     </div>
@@ -355,115 +637,223 @@
         let outputCanvas = document.getElementById('outputCanvas');
         let originalCtx = originalCanvas.getContext('2d');
         let outputCtx = outputCanvas.getContext('2d');
-        let currentView = 'side';
-        let currentMethod = 'simple';
+        let currentMode = 'side';
+        let isProcessing = false;
         
-        // Initialize sliders value displays
-        const sliders = [
-            'redShiftX', 'redShiftY', 'greenShiftX', 'greenShiftY', 
-            'blueShiftX', 'blueShiftY', 'strength', 'threshold'
-        ];
-        
-        sliders.forEach(sliderId => {
-            document.getElementById(sliderId).addEventListener('input', function() {
-                updateSliderDisplay(sliderId, this.value);
+        // Initialize UI
+        function initUI() {
+            // Setup file input
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            
+            fileInput.addEventListener('change', handleImageUpload);
+            
+            // Drag and drop support
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
             });
-        });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    loadImageFile(file);
+                }
+            });
+            
+            // Initialize sliders
+            const sliders = ['redShift', 'greenShift', 'blueShift', 'strength'];
+            sliders.forEach(sliderId => {
+                const slider = document.getElementById(sliderId);
+                slider.addEventListener('input', function() {
+                    updateSliderDisplay(sliderId, this.value);
+                });
+                updateSliderDisplay(sliderId, slider.value);
+            });
+            
+            // Setup comparison slider
+            setupComparisonSlider();
+            
+            // Add camera button for mobile
+            if ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
+                const cameraBtn = document.createElement('button');
+                cameraBtn.className = 'button secondary';
+                cameraBtn.innerHTML = '<span class="button-icon">📷</span> Take Photo';
+                cameraBtn.onclick = takePhoto;
+                uploadArea.parentNode.insertBefore(cameraBtn, uploadArea.nextSibling);
+            }
+        }
+        
+        function setupComparisonSlider() {
+            const handle = document.getElementById('comparisonHandle');
+            const imageAfter = document.getElementById('image-after');
+            let isSliding = false;
+            
+            // Mouse events
+            handle.addEventListener('mousedown', startSliding);
+            document.addEventListener('mousemove', slide);
+            document.addEventListener('mouseup', stopSliding);
+            
+            // Touch events for mobile
+            handle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startSliding(e);
+            });
+            document.addEventListener('touchmove', (e) => {
+                if (!isSliding) return;
+                e.preventDefault();
+                slide(e);
+            });
+            document.addEventListener('touchend', stopSliding);
+            
+            function startSliding(e) {
+                isSliding = true;
+                if (e.type === 'touchstart') {
+                    e.preventDefault();
+                }
+            }
+            
+            function slide(e) {
+                if (!isSliding) return;
+                
+                const container = document.getElementById('sliderView');
+                const rect = container.getBoundingClientRect();
+                
+                let clientX;
+                if (e.type === 'touchmove') {
+                    clientX = e.touches[0].clientX;
+                } else {
+                    clientX = e.clientX;
+                }
+                
+                const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+                const percent = (x / rect.width) * 100;
+                
+                imageAfter.style.clipPath = `polygon(0 0, ${percent}% 0, ${percent}% 100%, 0 100%)`;
+                handle.style.left = `${percent}%`;
+            }
+            
+            function stopSliding() {
+                isSliding = false;
+            }
+        }
         
         function updateSliderDisplay(sliderId, value) {
             const displayIds = {
-                'redShiftX': 'redValue',
-                'redShiftY': 'redYValue',
-                'greenShiftX': 'greenValue',
-                'greenShiftY': 'greenYValue',
-                'blueShiftX': 'blueValue',
-                'blueShiftY': 'blueYValue',
-                'strength': 'strengthValue',
-                'threshold': 'thresholdValue'
+                'redShift': 'redValue',
+                'greenShift': 'greenValue',
+                'blueShift': 'blueValue',
+                'strength': 'strengthValue'
             };
             
+            const display = document.getElementById(displayIds[sliderId]);
             if (sliderId === 'strength') {
-                document.getElementById(displayIds[sliderId]).textContent = (value / 100).toFixed(2);
+                display.textContent = `${value}%`;
             } else {
-                document.getElementById(displayIds[sliderId]).textContent = value;
+                display.textContent = `${parseFloat(value).toFixed(1)}px`;
             }
         }
         
-        // Initialize display values
-        sliders.forEach(sliderId => {
-            const slider = document.getElementById(sliderId);
-            updateSliderDisplay(sliderId, slider.value);
-        });
-        
-        // Set up before/after slider interaction
-        const slider = document.getElementById('comparison-slider');
-        const imageAfter = document.getElementById('image-after');
-        let isSliding = false;
-        
-        slider.addEventListener('mousedown', startSliding);
-        document.addEventListener('mousemove', slide);
-        document.addEventListener('mouseup', stopSliding);
-        
-        slider.addEventListener('touchstart', startSliding);
-        document.addEventListener('touchmove', slide);
-        document.addEventListener('touchend', stopSliding);
-        
-        function startSliding(e) {
-            isSliding = true;
-            e.preventDefault();
-        }
-        
-        function slide(e) {
-            if (!isSliding) return;
-            
-            e.preventDefault();
-            const container = document.getElementById('sliderView');
-            const rect = container.getBoundingClientRect();
-            
-            let clientX;
-            if (e.type === 'touchmove') {
-                clientX = e.touches[0].clientX;
-            } else {
-                clientX = e.clientX;
-            }
-            
-            const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-            const percent = (x / rect.width) * 100;
-            
-            imageAfter.style.clipPath = `polygon(0 0, ${percent}% 0, ${percent}% 100%, 0 100%)`;
-            slider.style.left = `${percent}%`;
-        }
-        
-        function stopSliding() {
-            isSliding = false;
-        }
-        
-        // View switching
-        function switchView(view) {
-            currentView = view;
+        function switchMode(mode) {
+            currentMode = mode;
             
             // Update button states
-            document.getElementById('view-side').classList.toggle('active', view === 'side');
-            document.getElementById('view-slider').classList.toggle('active', view === 'slider');
+            document.getElementById('modeSide').classList.toggle('active', mode === 'side');
+            document.getElementById('modeSlider').classList.toggle('active', mode === 'slider');
             
             // Show/hide views
-            document.getElementById('sideView').style.display = view === 'side' ? 'flex' : 'none';
-            document.getElementById('sliderView').style.display = view === 'slider' ? 'block' : 'none';
+            document.getElementById('sideView').classList.toggle('active', mode === 'side');
+            document.getElementById('sliderView').classList.toggle('active', mode === 'slider');
             
-            // Update slider view if we have an image
-            if (originalImage && view === 'slider') {
+            if (originalImage && mode === 'slider') {
                 updateSliderView();
             }
+        }
+        
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadImageFile(file);
+            }
+        }
+        
+        function loadImageFile(file) {
+            showLoading('Loading image...');
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                originalImage = new Image();
+                originalImage.onload = function() {
+                    processImageLoad();
+                    hideLoading();
+                };
+                originalImage.onerror = function() {
+                    hideLoading();
+                    alert('Failed to load image');
+                };
+                originalImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function takePhoto() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                
+                // We'd need a more complex implementation to capture photos
+                // For simplicity, we'll just prompt for file upload
+                alert('Camera capture requires additional implementation. Please use the file picker.');
+                
+                // Stop all video tracks
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Could not access camera. Please upload a photo instead.');
+            }
+        }
+        
+        function processImageLoad() {
+            // Set canvas dimensions (optimized for mobile)
+            const maxDimension = Math.min(800, Math.min(window.innerWidth, window.innerHeight) - 100);
+            const scale = Math.min(
+                maxDimension / originalImage.width,
+                maxDimension / originalImage.height
+            );
+            
+            originalCanvas.width = outputCanvas.width = Math.floor(originalImage.width * scale);
+            originalCanvas.height = outputCanvas.height = Math.floor(originalImage.height * scale);
+            
+            // Draw original image
+            originalCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
+            outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+            
+            // Show image container
+            document.getElementById('sideView').classList.add('active');
+            
+            // Try auto-detection
+            setTimeout(() => {
+                autoDetectCA();
+            }, 500);
         }
         
         function updateSliderView() {
             const container = document.getElementById('sliderView');
             const imageBefore = document.getElementById('image-before');
             const imageAfter = document.getElementById('image-after');
+            const handle = document.getElementById('comparisonHandle');
             
-            // Set container height based on image aspect ratio
+            // Set container height
             const aspectRatio = originalCanvas.height / originalCanvas.width;
-            container.style.height = `${Math.min(500, originalCanvas.width * aspectRatio)}px`;
+            container.style.height = `${Math.min(400, originalCanvas.width * aspectRatio)}px`;
             
             // Update images
             imageBefore.src = originalCanvas.toDataURL();
@@ -471,400 +861,354 @@
             
             // Reset slider position
             imageAfter.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0 100%)';
-            slider.style.left = '50%';
+            handle.style.left = '50%';
         }
         
-        function changeMethod() {
-            currentMethod = document.getElementById('method').value;
-            processImage();
-        }
-        
-        // Image upload handler
-        document.getElementById('imageInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        async function autoDetectCA() {
+            if (!originalImage || isProcessing) return;
             
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                originalImage = new Image();
-                originalImage.onload = function() {
-                    // Set canvas dimensions
-                    const maxWidth = 500;
-                    const scale = Math.min(maxWidth / originalImage.width, 1);
-                    originalCanvas.width = outputCanvas.width = originalImage.width * scale;
-                    originalCanvas.height = outputCanvas.height = originalImage.height * scale;
+            showLoading('Analyzing image for color fringing...');
+            isProcessing = true;
+            
+            try {
+                // Analyze edges for color shifts
+                const analysis = analyzeChromaticAberration();
+                
+                // Apply detected corrections
+                document.getElementById('redShift').value = analysis.redShift.toFixed(1);
+                document.getElementById('greenShift').value = analysis.greenShift.toFixed(1);
+                document.getElementById('blueShift').value = analysis.blueShift.toFixed(1);
+                
+                // Update displays
+                updateSliderDisplay('redShift', analysis.redShift.toFixed(1));
+                updateSliderDisplay('greenShift', analysis.greenShift.toFixed(1));
+                updateSliderDisplay('blueShift', analysis.blueShift.toFixed(1));
+                
+                // Show results
+                document.getElementById('autoRed').textContent = `${analysis.redShift.toFixed(1)}px`;
+                document.getElementById('autoGreen').textContent = `${analysis.greenShift.toFixed(1)}px`;
+                document.getElementById('autoBlue').textContent = `${analysis.blueShift.toFixed(1)}px`;
+                document.getElementById('autoConfidence').textContent = `${Math.round(analysis.confidence * 100)}%`;
+                document.getElementById('autoResults').classList.add('active');
+                
+                // Apply correction
+                applyCorrection();
+                
+                hideLoading();
+                isProcessing = false;
+                
+            } catch (error) {
+                console.error('Auto-detection error:', error);
+                hideLoading();
+                isProcessing = false;
+                alert('Auto-detection failed. Please try manual adjustment.');
+            }
+        }
+        
+        function analyzeChromaticAberration() {
+            // Get image data for analysis
+            originalCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
+            const imageData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            const data = imageData.data;
+            
+            let redShift = 0;
+            let greenShift = 0;
+            let blueShift = 0;
+            let confidence = 0;
+            let sampleCount = 0;
+            
+            // Sample edges at various positions
+            const edgeSamples = [];
+            const sampleGrid = 20; // Sample every 20 pixels
+            
+            for (let y = sampleGrid; y < originalCanvas.height - sampleGrid; y += sampleGrid) {
+                for (let x = sampleGrid; x < originalCanvas.width - sampleGrid; x += sampleGrid) {
+                    const idx = (y * originalCanvas.width + x) * 4;
                     
-                    // Draw original image
-                    originalCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
-                    outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+                    // Check if this is an edge by comparing with neighbors
+                    const leftIdx = (y * originalCanvas.width + (x - 1)) * 4;
+                    const rightIdx = (y * originalCanvas.width + (x + 1)) * 4;
                     
-                    // Update slider view if active
-                    if (currentView === 'slider') {
-                        updateSliderView();
+                    const edgeStrength = Math.abs(data[idx] - data[leftIdx]) + 
+                                        Math.abs(data[idx + 1] - data[leftIdx + 1]) + 
+                                        Math.abs(data[idx + 2] - data[leftIdx + 2]);
+                    
+                    if (edgeStrength > 50) { // Strong edge
+                        edgeSamples.push({ x, y, idx });
                     }
-                };
-                originalImage.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-        
-        // Create a test image with simulated chromatic aberration
-        function createTestImage() {
-            const testCanvas = document.createElement('canvas');
-            testCanvas.width = 400;
-            testCanvas.height = 300;
-            const ctx = testCanvas.getContext('2d');
+                }
+            }
             
-            // Draw a simple scene with high contrast edges
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, 400, 300);
-            
-            // Draw black rectangle
-            ctx.fillStyle = 'black';
-            ctx.fillRect(100, 50, 200, 200);
-            
-            // Draw some colored shapes
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(50, 100, 50, 50);
-            
-            ctx.fillStyle = '#00ff00';
-            ctx.fillRect(300, 100, 50, 50);
-            
-            ctx.fillStyle = '#0000ff';
-            ctx.fillRect(175, 200, 50, 50);
-            
-            // Add text
-            ctx.fillStyle = 'black';
-            ctx.font = '20px Arial';
-            ctx.fillText('Test Image for CA', 120, 40);
-            
-            return testCanvas.toDataURL();
-        }
-        
-        function loadTestImage() {
-            originalImage = new Image();
-            originalImage.onload = function() {
-                // Set canvas dimensions
-                const maxWidth = 500;
-                const scale = Math.min(maxWidth / originalImage.width, 1);
-                originalCanvas.width = outputCanvas.width = originalImage.width * scale;
-                originalCanvas.height = outputCanvas.height = originalImage.height * scale;
+            // Analyze color shifts at edges
+            for (const sample of edgeSamples.slice(0, 100)) { // Limit samples for performance
+                const { x, y, idx } = sample;
                 
-                // Draw original image
-                originalCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
-                
-                // Apply some chromatic aberration to the test image
-                const imageData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
-                const data = imageData.data;
-                
-                // Simulate red/blue chromatic aberration
-                for (let y = 0; y < originalCanvas.height; y++) {
-                    for (let x = 0; x < originalCanvas.width; x++) {
-                        const idx = (y * originalCanvas.width + x) * 4;
+                // Check color differences in a small radius
+                const radius = 3;
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        if (dx === 0 && dy === 0) continue;
                         
-                        // Find edges (high contrast)
-                        if (x > 0) {
-                            const prevIdx = (y * originalCanvas.width + (x-1)) * 4;
-                            const contrast = Math.abs(data[idx] - data[prevIdx]) + 
-                                           Math.abs(data[idx+1] - data[prevIdx+1]) + 
-                                           Math.abs(data[idx+2] - data[prevIdx+2]);
-                            
-                            if (contrast > 150) {
-                                // Add red fringe to the right of edges
-                                if (x < originalCanvas.width - 1) {
-                                    const nextIdx = (y * originalCanvas.width + (x+1)) * 4;
-                                    data[nextIdx] = Math.min(255, data[nextIdx] + 100); // Add red
-                                    data[nextIdx+1] = Math.max(0, data[nextIdx+1] - 50); // Reduce green
-                                    data[nextIdx+2] = Math.max(0, data[nextIdx+2] - 50); // Reduce blue
-                                }
-                                
-                                // Add blue fringe to the left of edges
-                                if (x > 0) {
-                                    const prevIdx = (y * originalCanvas.width + (x-1)) * 4;
-                                    data[prevIdx] = Math.max(0, data[prevIdx] - 50); // Reduce red
-                                    data[prevIdx+1] = Math.max(0, data[prevIdx+1] - 50); // Reduce green
-                                    data[prevIdx+2] = Math.min(255, data[prevIdx+2] + 100); // Add blue
-                                }
-                            }
+                        const sampleIdx = ((y + dy) * originalCanvas.width + (x + dx)) * 4;
+                        
+                        // Calculate color difference
+                        const rDiff = Math.abs(data[idx] - data[sampleIdx]);
+                        const gDiff = Math.abs(data[idx + 1] - data[sampleIdx + 1]);
+                        const bDiff = Math.abs(data[idx + 2] - data[sampleIdx + 2]);
+                        
+                        // Detect which channel is most different (likely shifted)
+                        if (rDiff > gDiff && rDiff > bDiff && rDiff > 30) {
+                            redShift += dx; // Red is shifted horizontally
+                            sampleCount++;
+                        }
+                        if (gDiff > rDiff && gDiff > bDiff && gDiff > 30) {
+                            greenShift += dx;
+                            sampleCount++;
+                        }
+                        if (bDiff > rDiff && bDiff > gDiff && bDiff > 30) {
+                            blueShift += dx;
+                            sampleCount++;
                         }
                     }
                 }
-                
-                outputCtx.putImageData(imageData, 0, 0);
-                
-                // Set presets for this test image
-                applyPreset('redcyan');
-                
-                // Update slider view if active
-                if (currentView === 'slider') {
-                    updateSliderView();
-                }
-            };
-            originalImage.src = createTestImage();
-        }
-        
-        // Main processing function - SIMPLE METHOD (most effective)
-        function processImage() {
-            if (!originalImage) {
-                alert('Please upload an image first');
-                return;
             }
             
+            // Calculate averages
+            if (sampleCount > 0) {
+                redShift = redShift / sampleCount;
+                greenShift = greenShift / sampleCount;
+                blueShift = blueShift / sampleCount;
+                confidence = Math.min(1, sampleCount / 50);
+            }
+            
+            // Normalize shifts
+            const maxShift = 3;
+            redShift = Math.max(-maxShift, Math.min(maxShift, redShift));
+            greenShift = Math.max(-maxShift, Math.min(maxShift, greenShift));
+            blueShift = Math.max(-maxShift, Math.min(maxShift, blueShift));
+            
+            // Round to nearest 0.1
+            redShift = Math.round(redShift * 10) / 10;
+            greenShift = Math.round(greenShift * 10) / 10;
+            blueShift = Math.round(blueShift * 10) / 10;
+            
+            return {
+                redShift,
+                greenShift,
+                blueShift,
+                confidence
+            };
+        }
+        
+        function applyCorrection() {
+            if (!originalImage) return;
+            
+            const redShift = parseFloat(document.getElementById('redShift').value);
+            const greenShift = parseFloat(document.getElementById('greenShift').value);
+            const blueShift = parseFloat(document.getElementById('blueShift').value);
             const strength = parseFloat(document.getElementById('strength').value) / 100;
             
-            // Get original image data
-            originalCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
-            const originalData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            // Create separate canvases for each channel
+            const redCanvas = document.createElement('canvas');
+            const greenCanvas = document.createElement('canvas');
+            const blueCanvas = document.createElement('canvas');
+            const alphaCanvas = document.createElement('canvas');
             
-            // Create output canvas with same image
-            outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
-            const outputData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-            const data = outputData.data;
+            redCanvas.width = greenCanvas.width = blueCanvas.width = alphaCanvas.width = originalCanvas.width;
+            redCanvas.height = greenCanvas.height = blueCanvas.height = alphaCanvas.height = originalCanvas.height;
             
-            if (currentMethod === 'simple') {
-                // SIMPLE METHOD: Direct channel shifting
-                const redX = parseFloat(document.getElementById('redShiftX').value) * strength;
-                const redY = parseFloat(document.getElementById('redShiftY').value) * strength;
-                const greenX = parseFloat(document.getElementById('greenShiftX').value) * strength;
-                const greenY = parseFloat(document.getElementById('greenShiftY').value) * strength;
-                const blueX = parseFloat(document.getElementById('blueShiftX').value) * strength;
-                const blueY = parseFloat(document.getElementById('blueShiftY').value) * strength;
-                
-                // Create separate canvases for each channel
-                const redCanvas = document.createElement('canvas');
-                const greenCanvas = document.createElement('canvas');
-                const blueCanvas = document.createElement('canvas');
-                redCanvas.width = greenCanvas.width = blueCanvas.width = originalCanvas.width;
-                redCanvas.height = greenCanvas.height = blueCanvas.height = originalCanvas.height;
-                
-                const redCtx = redCanvas.getContext('2d');
-                const greenCtx = greenCanvas.getContext('2d');
-                const blueCtx = blueCanvas.getContext('2d');
-                
-                // Extract red channel
-                redCtx.drawImage(originalImage, 0, 0);
-                let redImageData = redCtx.getImageData(0, 0, redCanvas.width, redCanvas.height);
-                let redData = redImageData.data;
-                for (let i = 0; i < redData.length; i += 4) {
-                    redData[i+1] = 0;   // Zero out green
-                    redData[i+2] = 0;   // Zero out blue
-                }
-                redCtx.putImageData(redImageData, 0, 0);
-                
-                // Extract green channel
-                greenCtx.drawImage(originalImage, 0, 0);
-                let greenImageData = greenCtx.getImageData(0, 0, greenCanvas.width, greenCanvas.height);
-                let greenData = greenImageData.data;
-                for (let i = 0; i < greenData.length; i += 4) {
-                    greenData[i] = 0;   // Zero out red
-                    greenData[i+2] = 0; // Zero out blue
-                }
-                greenCtx.putImageData(greenImageData, 0, 0);
-                
-                // Extract blue channel
-                blueCtx.drawImage(originalImage, 0, 0);
-                let blueImageData = blueCtx.getImageData(0, 0, blueCanvas.width, blueCanvas.height);
-                let blueData = blueImageData.data;
-                for (let i = 0; i < blueData.length; i += 4) {
-                    blueData[i] = 0;    // Zero out red
-                    blueData[i+1] = 0;  // Zero out green
-                }
-                blueCtx.putImageData(blueImageData, 0, 0);
-                
-                // Clear output
-                outputCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-                
-                // Draw shifted channels with blending
-                outputCtx.globalCompositeOperation = 'screen';
-                
-                // Draw red channel with shift
-                outputCtx.save();
-                outputCtx.translate(redX, redY);
-                outputCtx.drawImage(redCanvas, 0, 0);
-                outputCtx.restore();
-                
-                // Draw green channel with shift
-                outputCtx.save();
-                outputCtx.translate(greenX, greenY);
-                outputCtx.drawImage(greenCanvas, 0, 0);
-                outputCtx.restore();
-                
-                // Draw blue channel with shift
-                outputCtx.save();
-                outputCtx.translate(blueX, blueY);
-                outputCtx.drawImage(blueCanvas, 0, 0);
-                outputCtx.restore();
-                
-                outputCtx.globalCompositeOperation = 'source-over';
-                
-            } else if (currentMethod === 'advanced') {
-                // ADVANCED METHOD: Edge-aware correction
-                const threshold = parseInt(document.getElementById('threshold').value);
-                
-                // Get shift values
-                const redX = parseFloat(document.getElementById('redShiftX').value) * strength;
-                const redY = parseFloat(document.getElementById('redShiftY').value) * strength;
-                const greenX = parseFloat(document.getElementById('greenShiftX').value) * strength;
-                const greenY = parseFloat(document.getElementById('greenShiftY').value) * strength;
-                const blueX = parseFloat(document.getElementById('blueShiftX').value) * strength;
-                const blueY = parseFloat(document.getElementById('blueShiftY').value) * strength;
-                
-                // Apply correction based on edge detection
-                for (let y = 1; y < originalCanvas.height - 1; y++) {
-                    for (let x = 1; x < originalCanvas.width - 1; x++) {
-                        const idx = (y * originalCanvas.width + x) * 4;
-                        
-                        // Edge detection using Sobel filter
-                        let gxRed = 0, gyRed = 0;
-                        let gxGreen = 0, gyGreen = 0;
-                        let gxBlue = 0, gyBlue = 0;
-                        
-                        for (let dy = -1; dy <= 1; dy++) {
-                            for (let dx = -1; dx <= 1; dx++) {
-                                const neighborIdx = ((y + dy) * originalCanvas.width + (x + dx)) * 4;
-                                const weightX = dx;
-                                const weightY = dy;
-                                
-                                gxRed += originalData.data[neighborIdx] * weightX;
-                                gyRed += originalData.data[neighborIdx] * weightY;
-                                gxGreen += originalData.data[neighborIdx + 1] * weightX;
-                                gyGreen += originalData.data[neighborIdx + 1] * weightY;
-                                gxBlue += originalData.data[neighborIdx + 2] * weightX;
-                                gyBlue += originalData.data[neighborIdx + 2] * weightY;
-                            }
-                        }
-                        
-                        const edgeStrength = Math.sqrt(gxRed*gxRed + gyRed*gyRed + 
-                                                      gxGreen*gxGreen + gyGreen*gyGreen + 
-                                                      gxBlue*gxBlue + gyBlue*gyBlue) / 3;
-                        
-                        if (edgeStrength > threshold) {
-                            // Apply stronger correction near edges
-                            const edgeFactor = Math.min(1, edgeStrength / 100);
-                            
-                            // Calculate shifted positions
-                            const shiftRedX = Math.round(x + redX * edgeFactor);
-                            const shiftRedY = Math.round(y + redY * edgeFactor);
-                            const shiftGreenX = Math.round(x + greenX * edgeFactor);
-                            const shiftGreenY = Math.round(y + greenY * edgeFactor);
-                            const shiftBlueX = Math.round(x + blueX * edgeFactor);
-                            const shiftBlueY = Math.round(y + blueY * edgeFactor);
-                            
-                            // Get colors from shifted positions (clamped to bounds)
-                            const getColor = (sx, sy, channel) => {
-                                const clampedX = Math.max(0, Math.min(originalCanvas.width - 1, sx));
-                                const clampedY = Math.max(0, Math.min(originalCanvas.height - 1, sy));
-                                const sIdx = (clampedY * originalCanvas.width + clampedX) * 4;
-                                return originalData.data[sIdx + channel];
-                            };
-                            
-                            // Apply corrected colors
-                            data[idx] = getColor(shiftRedX, shiftRedY, 0);
-                            data[idx + 1] = getColor(shiftGreenX, shiftGreenY, 1);
-                            data[idx + 2] = getColor(shiftBlueX, shiftBlueY, 2);
-                        }
-                    }
-                }
-                
-                outputCtx.putImageData(outputData, 0, 0);
-            }
+            const redCtx = redCanvas.getContext('2d');
+            const greenCtx = greenCanvas.getContext('2d');
+            const blueCtx = blueCanvas.getContext('2d');
+            const alphaCtx = alphaCanvas.getContext('2d');
             
-            // Update slider view if active
-            if (currentView === 'slider') {
+            // Draw original image to all canvases
+            redCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
+            greenCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
+            blueCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
+            alphaCtx.drawImage(originalImage, 0, 0, originalCanvas.width, originalCanvas.height);
+            
+            // Extract and shift channels
+            shiftChannel(redCtx, 'red', redShift * strength);
+            shiftChannel(greenCtx, 'green', greenShift * strength);
+            shiftChannel(blueCtx, 'blue', blueShift * strength);
+            
+            // Clear output and composite channels
+            outputCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+            
+            // Draw shifted channels with proper blending
+            outputCtx.globalCompositeOperation = 'source-over';
+            
+            // Draw red channel
+            outputCtx.save();
+            outputCtx.globalCompositeOperation = 'multiply';
+            outputCtx.globalAlpha = 1;
+            outputCtx.drawImage(redCanvas, 0, 0);
+            outputCtx.restore();
+            
+            // Draw green channel
+            outputCtx.save();
+            outputCtx.globalCompositeOperation = 'multiply';
+            outputCtx.globalAlpha = 1;
+            outputCtx.drawImage(greenCanvas, 0, 0);
+            outputCtx.restore();
+            
+            // Draw blue channel
+            outputCtx.save();
+            outputCtx.globalCompositeOperation = 'multiply';
+            outputCtx.globalAlpha = 1;
+            outputCtx.drawImage(blueCanvas, 0, 0);
+            outputCtx.restore();
+            
+            // Restore normal composite operation
+            outputCtx.globalCompositeOperation = 'source-over';
+            
+            // Update comparison view if active
+            if (currentMode === 'slider') {
                 updateSliderView();
             }
         }
         
-        // Preset configurations for common chromatic aberration types
+        function shiftChannel(ctx, channel, shift) {
+            if (Math.abs(shift) < 0.1) return;
+            
+            const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+            const data = imageData.data;
+            const shiftedData = new ImageData(ctx.canvas.width, ctx.canvas.height);
+            const shifted = shiftedData.data;
+            
+            // Copy with horizontal shift
+            for (let y = 0; y < ctx.canvas.height; y++) {
+                for (let x = 0; x < ctx.canvas.width; x++) {
+                    const idx = (y * ctx.canvas.width + x) * 4;
+                    const sourceX = Math.round(x - shift);
+                    
+                    if (sourceX >= 0 && sourceX < ctx.canvas.width) {
+                        const sourceIdx = (y * ctx.canvas.width + sourceX) * 4;
+                        
+                        // Copy all channels
+                        shifted[idx] = data[sourceIdx];
+                        shifted[idx + 1] = data[sourceIdx + 1];
+                        shifted[idx + 2] = data[sourceIdx + 2];
+                        shifted[idx + 3] = data[sourceIdx + 3];
+                    } else {
+                        // Set to black for out-of-bounds
+                        shifted[idx] = 0;
+                        shifted[idx + 1] = 0;
+                        shifted[idx + 2] = 0;
+                        shifted[idx + 3] = 255;
+                    }
+                }
+            }
+            
+            // Zero out other channels based on which channel we're shifting
+            for (let i = 0; i < shifted.length; i += 4) {
+                if (channel === 'red') {
+                    shifted[i + 1] = 0; // Zero green
+                    shifted[i + 2] = 0; // Zero blue
+                } else if (channel === 'green') {
+                    shifted[i] = 0;     // Zero red
+                    shifted[i + 2] = 0; // Zero blue
+                } else if (channel === 'blue') {
+                    shifted[i] = 0;     // Zero red
+                    shifted[i + 1] = 0; // Zero green
+                }
+            }
+            
+            ctx.putImageData(shiftedData, 0, 0);
+        }
+        
+        function applyManualCorrection() {
+            applyCorrection();
+        }
+        
         function applyPreset(type) {
             switch(type) {
-                case 'redcyan': // Red fringes on one side, cyan on the other
-                    document.getElementById('redShiftX').value = -2;
-                    document.getElementById('redShiftY').value = 0;
-                    document.getElementById('greenShiftX').value = 0;
-                    document.getElementById('greenShiftY').value = 0;
-                    document.getElementById('blueShiftX').value = 2;
-                    document.getElementById('blueShiftY').value = 0;
-                    document.getElementById('strength').value = 100;
-                    document.getElementById('threshold').value = 30;
+                case 'redcyan':
+                    document.getElementById('redShift').value = -1.5;
+                    document.getElementById('greenShift').value = 0;
+                    document.getElementById('blueShift').value = 1.5;
                     break;
-                    
-                case 'greenmagenta': // Green/magenta fringing
-                    document.getElementById('redShiftX').value = 1;
-                    document.getElementById('redShiftY').value = 0;
-                    document.getElementById('greenShiftX').value = -2;
-                    document.getElementById('greenShiftY').value = 0;
-                    document.getElementById('blueShiftX').value = 1;
-                    document.getElementById('blueShiftY').value = 0;
-                    document.getElementById('strength').value = 100;
-                    document.getElementById('threshold').value = 30;
+                case 'greenmagenta':
+                    document.getElementById('redShift').value = 0.8;
+                    document.getElementById('greenShift').value = -1.2;
+                    document.getElementById('blueShift').value = 0.8;
                     break;
-                    
-                case 'blueyellow': // Blue/yellow fringing
-                    document.getElementById('redShiftX').value = 2;
-                    document.getElementById('redShiftY').value = 0;
-                    document.getElementById('greenShiftX').value = 1;
-                    document.getElementById('greenShiftY').value = 0;
-                    document.getElementById('blueShiftX').value = -2;
-                    document.getElementById('blueShiftY').value = 0;
-                    document.getElementById('strength').value = 100;
-                    document.getElementById('threshold').value = 30;
+                case 'blueyellow':
+                    document.getElementById('redShift').value = 1.2;
+                    document.getElementById('greenShift').value = 0.6;
+                    document.getElementById('blueShift').value = -1.2;
                     break;
             }
             
             // Update displays
-            sliders.forEach(sliderId => {
-                const slider = document.getElementById(sliderId);
-                updateSliderDisplay(sliderId, slider.value);
-            });
+            updateSliderDisplay('redShift', document.getElementById('redShift').value);
+            updateSliderDisplay('greenShift', document.getElementById('greenShift').value);
+            updateSliderDisplay('blueShift', document.getElementById('blueShift').value);
             
-            if (originalImage) {
-                processImage();
-            }
+            applyCorrection();
         }
         
-        function resetCorrections() {
-            sliders.forEach(sliderId => {
-                const slider = document.getElementById(sliderId);
-                if (sliderId === 'strength') {
-                    slider.value = 100;
-                } else if (sliderId === 'threshold') {
-                    slider.value = 30;
-                } else {
-                    slider.value = 0;
-                }
-                updateSliderDisplay(sliderId, slider.value);
-            });
+        function resetControls() {
+            document.getElementById('redShift').value = 0;
+            document.getElementById('greenShift').value = 0;
+            document.getElementById('blueShift').value = 0;
+            document.getElementById('strength').value = 100;
+            
+            updateSliderDisplay('redShift', 0);
+            updateSliderDisplay('greenShift', 0);
+            updateSliderDisplay('blueShift', 0);
+            updateSliderDisplay('strength', 100);
+            
+            document.getElementById('autoResults').classList.remove('active');
             
             if (originalImage) {
                 outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
-                if (currentView === 'slider') {
+                if (currentMode === 'slider') {
                     updateSliderView();
                 }
             }
         }
         
-        function showDebug() {
-            alert('Debug view would show edge detection overlay. Try adjusting the threshold slider to see which areas are being corrected.');
-        }
-        
-        function downloadImage() {
+        function saveImage() {
             if (!originalImage) {
-                alert('Please process an image first');
+                alert('Please upload and process an image first');
                 return;
             }
             
             const link = document.createElement('a');
-            link.download = 'corrected-image.png';
+            link.download = 'corrected-photo.png';
             link.href = outputCanvas.toDataURL('image/png');
-            link.click();
+            
+            // For mobile devices
+            if (/iPad|iPhone|iPod|Android/.test(navigator.userAgent)) {
+                const newWindow = window.open();
+                newWindow.document.write(`<img src="${link.href}" style="max-width: 100%;">`);
+                newWindow.document.close();
+            } else {
+                link.click();
+            }
         }
         
-        // Initialize the view
-        switchView('side');
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loading').classList.add('active');
+        }
         
-        // Load a test image on startup
-        setTimeout(loadTestImage, 500);
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+        
+        // Initialize the app
+        initUI();
+        
+        // Add touch feedback for buttons
+        document.addEventListener('touchstart', function() {}, {passive: true});
+        
+        // Prevent zoom on double-tap
+        document.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+        }, { passive: false });
     </script>
 </body>
 </html>
