@@ -258,7 +258,7 @@
             font-size: 1.5rem;
         }
         
-        /* SINGLE IMAGE EDITING VIEW */
+        /* SINGLE IMAGE EDITING VIEW - IMPROVED */
         .single-image-container {
             position: relative;
             width: 100%;
@@ -291,17 +291,14 @@
         
         #singleImageView {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            transform-origin: center center;
-            max-width: none;
+            transform-origin: 0 0;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
             will-change: transform;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
+            max-width: none;
         }
         
         .zoom-controls {
@@ -386,6 +383,20 @@
             font-size: 0.8rem;
             min-width: 40px;
             text-align: center;
+        }
+        
+        .pan-indicator {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            display: none;
         }
         
         .image-container {
@@ -599,10 +610,7 @@
         
         #fullscreen-image {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            transform-origin: center center;
+            transform-origin: 0 0;
             max-width: none;
             max-height: none;
             touch-action: none;
@@ -981,10 +989,11 @@
                 <div class="single-image-wrapper" id="singleImageWrapper">
                     <img id="singleImageView" alt="Corrected Image">
                 </div>
-                <div class="zoom-indicator" id="zoomIndicator">100%</div>
+                <div class="zoom-indicator" id="zoomIndicator">Fit</div>
+                <div class="pan-indicator" id="panIndicator">Drag to pan</div>
                 <div class="zoom-slider-container">
-                    <input type="range" class="zoom-slider" id="zoomSlider" min="1" max="10" value="1" step="0.1">
-                    <div class="zoom-slider-value" id="zoomSliderValue">1x</div>
+                    <input type="range" class="zoom-slider" id="zoomSlider" min="0.1" max="10" value="1" step="0.1">
+                    <div class="zoom-slider-value" id="zoomSliderValue">Fit</div>
                 </div>
                 <div class="zoom-controls">
                     <button class="zoom-button" onclick="zoomOut()">-</button>
@@ -1096,7 +1105,7 @@
             </button>
             
             <div class="hint">
-                <strong>💡 Pro Tip:</strong> Use zoom slider for precise control. Zoom up to 1000% for pixel-level editing. Adjust channels while zoomed in for perfect results.
+                <strong>💡 Pro Tip:</strong> Use zoom slider from 10% to 1000%. Drag to pan when zoomed in. "Fit" shows the whole image.
             </div>
         </div>
     </div>
@@ -1112,21 +1121,23 @@
         let isProcessing = false;
         let exportSize = 'original';
         
-        // Zoom variables for single image view
-        let singleZoomLevel = 1;
-        let singlePanX = 0;
-        let singlePanY = 0;
-        let isSinglePanning = false;
-        let lastTouchX = 0;
-        let lastTouchY = 0;
+        // Zoom and pan variables for single image view
+        let singleZoomLevel = 1; // 1 = fit to container
+        let singlePosX = 0;
+        let singlePosY = 0;
+        let isSingleDragging = false;
+        let lastDragX = 0;
+        let lastDragY = 0;
+        let imageAspectRatio = 1;
+        let containerAspectRatio = 1;
         
-        // Zoom variables for fullscreen view
+        // Zoom and pan variables for fullscreen view
         let fullscreenZoomLevel = 1;
-        let fullscreenPanX = 0;
-        let fullscreenPanY = 0;
+        let fullscreenPosX = 0;
+        let fullscreenPosY = 0;
+        let isFullscreenDragging = false;
         
-        // Higher resolution working canvas (2x for better zoom quality)
-        let workingScale = 2;
+        // Higher resolution working canvas
         let workingCanvas = document.createElement('canvas');
         let workingCtx = workingCanvas.getContext('2d');
         
@@ -1174,68 +1185,116 @@
             // Setup zoom slider
             const zoomSlider = document.getElementById('zoomSlider');
             zoomSlider.addEventListener('input', function() {
-                singleZoomLevel = parseFloat(this.value);
-                document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
-                document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
-                updateSingleImageZoom();
+                const value = parseFloat(this.value);
+                singleZoomLevel = value;
+                updateZoomControls();
+                updateSingleImageTransform();
             });
             
             // Setup comparison slider
             setupComparisonSlider();
             
             // Setup zoom and pan for single image view
-            setupSingleImageZoom();
+            setupSingleImagePanZoom();
             
             // Setup zoom and pan for fullscreen view
-            setupFullscreenZoom();
+            setupFullscreenPanZoom();
             
             console.log("CA Fix initialized - Manual mode only");
         }
         
-        function setupSingleImageZoom() {
+        function setupSingleImagePanZoom() {
             const wrapper = document.getElementById('singleImageWrapper');
             const singleImage = document.getElementById('singleImageView');
             
-            // Mouse events for desktop
-            wrapper.addEventListener('mousedown', startPan);
-            document.addEventListener('mousemove', doPan);
-            document.addEventListener('mouseup', endPan);
+            // Mouse events
+            wrapper.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', endDrag);
             
-            // Touch events for mobile
+            // Touch events
             wrapper.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 1) {
-                    startPan(e);
+                    startDrag(e);
+                } else if (e.touches.length === 2) {
+                    // Pinch to zoom
+                    e.preventDefault();
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const initialDistance = Math.hypot(
+                        touch2.clientX - touch1.clientX,
+                        touch2.clientY - touch1.clientY
+                    );
+                    const initialZoom = singleZoomLevel;
+                    
+                    wrapper.addEventListener('touchmove', function pinchZoom(e) {
+                        if (e.touches.length === 2) {
+                            e.preventDefault();
+                            const touch1 = e.touches[0];
+                            const touch2 = e.touches[1];
+                            const currentDistance = Math.hypot(
+                                touch2.clientX - touch1.clientX,
+                                touch2.clientY - touch1.clientY
+                            );
+                            
+                            const scale = currentDistance / initialDistance;
+                            singleZoomLevel = Math.max(0.1, Math.min(initialZoom * scale, 10));
+                            
+                            updateZoomControls();
+                            updateSingleImageTransform();
+                        }
+                    }, { passive: false });
                 }
             });
             
-            document.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 1 && isSinglePanning) {
+            wrapper.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && isSingleDragging) {
                     e.preventDefault();
-                    doPan(e);
+                    drag(e);
                 }
             }, { passive: false });
             
-            document.addEventListener('touchend', endPan);
+            wrapper.addEventListener('touchend', endDrag);
             
-            function startPan(e) {
-                if (singleZoomLevel <= 1) return;
+            // Mouse wheel zoom
+            wrapper.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                const mouseX = e.clientX - wrapper.getBoundingClientRect().left;
+                const mouseY = e.clientY - wrapper.getBoundingClientRect().top;
                 
-                isSinglePanning = true;
+                // Calculate zoom around mouse position
+                const oldZoom = singleZoomLevel;
+                singleZoomLevel = Math.max(0.1, Math.min(singleZoomLevel * zoomFactor, 10));
+                
+                // Adjust position to zoom around mouse
+                const zoomRatio = singleZoomLevel / oldZoom;
+                singlePosX = mouseX - (mouseX - singlePosX) * zoomRatio;
+                singlePosY = mouseY - (mouseY - singlePosY) * zoomRatio;
+                
+                updateZoomControls();
+                updateSingleImageTransform();
+            });
+            
+            function startDrag(e) {
+                if (singleZoomLevel <= 1) return; // Only allow dragging when zoomed in
+                
+                isSingleDragging = true;
                 wrapper.style.cursor = 'grabbing';
                 
                 if (e.type === 'touchstart') {
-                    lastTouchX = e.touches[0].clientX;
-                    lastTouchY = e.touches[0].clientY;
+                    lastDragX = e.touches[0].clientX;
+                    lastDragY = e.touches[0].clientY;
                 } else {
-                    lastTouchX = e.clientX;
-                    lastTouchY = e.clientY;
+                    lastDragX = e.clientX;
+                    lastDragY = e.clientY;
                 }
                 
                 e.preventDefault();
             }
             
-            function doPan(e) {
-                if (!isSinglePanning || singleZoomLevel <= 1) return;
+            function drag(e) {
+                if (!isSingleDragging || singleZoomLevel <= 1) return;
                 
                 let clientX, clientY;
                 if (e.type === 'touchmove') {
@@ -1246,111 +1305,56 @@
                     clientY = e.clientY;
                 }
                 
-                const deltaX = clientX - lastTouchX;
-                const deltaY = clientY - lastTouchY;
+                const deltaX = clientX - lastDragX;
+                const deltaY = clientY - lastDragY;
                 
-                // Calculate max pan based on zoom level and image size
+                // Calculate bounds for panning
                 const wrapperRect = wrapper.getBoundingClientRect();
-                const imageWidth = singleImage.naturalWidth || singleImage.width;
-                const imageHeight = singleImage.naturalHeight || singleImage.height;
-                const scaleRatio = Math.min(wrapperRect.width / imageWidth, wrapperRect.height / imageHeight);
-                const displayedWidth = imageWidth * scaleRatio * singleZoomLevel;
-                const displayedHeight = imageHeight * scaleRatio * singleZoomLevel;
+                const scaledWidth = singleImage.naturalWidth * singleZoomLevel;
+                const scaledHeight = singleImage.naturalHeight * singleZoomLevel;
                 
-                const maxPanX = Math.max(0, (displayedWidth - wrapperRect.width) / 2);
-                const maxPanY = Math.max(0, (displayedHeight - wrapperRect.height) / 2);
+                // Max pan limits
+                const maxPanX = Math.max(0, (scaledWidth - wrapperRect.width) / 2);
+                const maxPanY = Math.max(0, (scaledHeight - wrapperRect.height) / 2);
                 
-                singlePanX = Math.max(-maxPanX, Math.min(maxPanX, singlePanX + deltaX));
-                singlePanY = Math.max(-maxPanY, Math.min(maxPanY, singlePanY + deltaY));
+                singlePosX += deltaX;
+                singlePosY += deltaY;
                 
-                lastTouchX = clientX;
-                lastTouchY = clientY;
+                // Clamp position within bounds
+                singlePosX = Math.max(-maxPanX, Math.min(maxPanX, singlePosX));
+                singlePosY = Math.max(-maxPanY, Math.min(maxPanY, singlePosY));
                 
-                updateSingleImageZoom();
+                lastDragX = clientX;
+                lastDragY = clientY;
+                
+                updateSingleImageTransform();
+                updatePanIndicator();
                 e.preventDefault();
             }
             
-            function endPan() {
-                isSinglePanning = false;
+            function endDrag() {
+                isSingleDragging = false;
                 wrapper.style.cursor = 'grab';
             }
-            
-            // Pinch-to-zoom for mobile
-            let initialPinchDistance = 0;
-            let initialPinchZoom = 1;
-            let isPinching = false;
-            
-            wrapper.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    isPinching = true;
-                    const touch1 = e.touches[0];
-                    const touch2 = e.touches[1];
-                    initialPinchDistance = Math.hypot(
-                        touch2.clientX - touch1.clientX,
-                        touch2.clientY - touch1.clientY
-                    );
-                    initialPinchZoom = singleZoomLevel;
-                    e.preventDefault();
-                }
-            });
-            
-            wrapper.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2 && isPinching) {
-                    const touch1 = e.touches[0];
-                    const touch2 = e.touches[1];
-                    const currentDistance = Math.hypot(
-                        touch2.clientX - touch1.clientX,
-                        touch2.clientY - touch1.clientY
-                    );
-                    
-                    const scale = currentDistance / initialPinchDistance;
-                    singleZoomLevel = Math.max(1, Math.min(initialPinchZoom * scale, 10));
-                    
-                    // Update slider
-                    document.getElementById('zoomSlider').value = singleZoomLevel;
-                    document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
-                    document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
-                    
-                    updateSingleImageZoom();
-                    e.preventDefault();
-                }
-            });
-            
-            wrapper.addEventListener('touchend', () => {
-                isPinching = false;
-            });
-            
-            // Mouse wheel zoom for desktop
-            wrapper.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-                singleZoomLevel = Math.max(1, Math.min(singleZoomLevel * zoomFactor, 10));
-                
-                // Update slider
-                document.getElementById('zoomSlider').value = singleZoomLevel;
-                document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
-                document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
-                
-                updateSingleImageZoom();
-            });
         }
         
-        function setupFullscreenZoom() {
+        function setupFullscreenPanZoom() {
             const container = document.getElementById('fullscreenImageContainer');
             const fullscreenImage = document.getElementById('fullscreen-image');
             
-            let isFullscreenPanning = false;
-            let lastFullscreenTouchX = 0;
-            let lastFullscreenTouchY = 0;
+            let lastFullscreenX = 0;
+            let lastFullscreenY = 0;
             
             // Touch events for fullscreen
             container.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 1) {
-                    isFullscreenPanning = true;
-                    lastFullscreenTouchX = e.touches[0].clientX;
-                    lastFullscreenTouchY = e.touches[0].clientY;
+                    isFullscreenDragging = true;
+                    lastFullscreenX = e.touches[0].clientX;
+                    lastFullscreenY = e.touches[0].clientY;
                     e.preventDefault();
                 } else if (e.touches.length === 2) {
+                    // Pinch to zoom
+                    e.preventDefault();
                     const touch1 = e.touches[0];
                     const touch2 = e.touches[1];
                     const initialDistance = Math.hypot(
@@ -1359,9 +1363,9 @@
                     );
                     const initialZoom = fullscreenZoomLevel;
                     
-                    // Pinch-to-zoom
                     container.addEventListener('touchmove', function pinchZoom(e) {
                         if (e.touches.length === 2) {
+                            e.preventDefault();
                             const touch1 = e.touches[0];
                             const touch2 = e.touches[1];
                             const currentDistance = Math.hypot(
@@ -1370,83 +1374,150 @@
                             );
                             
                             const scale = currentDistance / initialDistance;
-                            fullscreenZoomLevel = Math.max(1, Math.min(initialZoom * scale, 10));
-                            updateFullscreenZoom();
-                            e.preventDefault();
+                            fullscreenZoomLevel = Math.max(0.1, Math.min(initialZoom * scale, 10));
+                            updateFullscreenTransform();
                         }
                     }, { passive: false });
-                    
-                    e.preventDefault();
                 }
             });
             
             container.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 1 && isFullscreenPanning && fullscreenZoomLevel > 1) {
+                if (e.touches.length === 1 && isFullscreenDragging && fullscreenZoomLevel > 1) {
+                    e.preventDefault();
                     const touchX = e.touches[0].clientX;
                     const touchY = e.touches[0].clientY;
                     
-                    const deltaX = touchX - lastFullscreenTouchX;
-                    const deltaY = touchY - lastFullscreenTouchY;
+                    const deltaX = touchX - lastFullscreenX;
+                    const deltaY = touchY - lastFullscreenY;
                     
-                    fullscreenPanX += deltaX;
-                    fullscreenPanY += deltaY;
+                    fullscreenPosX += deltaX;
+                    fullscreenPosY += deltaY;
                     
-                    lastFullscreenTouchX = touchX;
-                    lastFullscreenTouchY = touchY;
+                    lastFullscreenX = touchX;
+                    lastFullscreenY = touchY;
                     
-                    updateFullscreenZoom();
-                    e.preventDefault();
+                    updateFullscreenTransform();
                 }
             }, { passive: false });
             
             container.addEventListener('touchend', () => {
-                isFullscreenPanning = false;
+                isFullscreenDragging = false;
             });
         }
         
-        function updateSingleImageZoom() {
+        function updateSingleImageTransform() {
             const singleImage = document.getElementById('singleImageView');
-            const transform = `translate(-50%, -50%) translate(${singlePanX}px, ${singlePanY}px) scale(${singleZoomLevel})`;
-            singleImage.style.transform = transform;
+            const wrapper = document.getElementById('singleImageWrapper');
+            
+            if (singleZoomLevel <= 1) {
+                // Fit mode - center the image
+                singlePosX = 0;
+                singlePosY = 0;
+                
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const imageWidth = singleImage.naturalWidth || 1;
+                const imageHeight = singleImage.naturalHeight || 1;
+                
+                // Calculate fit scale
+                const fitScale = Math.min(
+                    wrapperRect.width / imageWidth,
+                    wrapperRect.height / imageHeight
+                );
+                
+                const actualScale = fitScale * singleZoomLevel;
+                const translateX = (wrapperRect.width - imageWidth * actualScale) / 2;
+                const translateY = (wrapperRect.height - imageHeight * actualScale) / 2;
+                
+                singleImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${actualScale})`;
+            } else {
+                // Zoomed in mode - use position
+                singleImage.style.transform = `translate(${singlePosX}px, ${singlePosY}px) scale(${singleZoomLevel})`;
+            }
+            
+            updatePanIndicator();
         }
         
-        function updateFullscreenZoom() {
+        function updateFullscreenTransform() {
             const fullscreenImage = document.getElementById('fullscreen-image');
-            const transform = `translate(-50%, -50%) translate(${fullscreenPanX}px, ${fullscreenPanY}px) scale(${fullscreenZoomLevel})`;
-            fullscreenImage.style.transform = transform;
+            const container = document.getElementById('fullscreenImageContainer');
+            
+            if (fullscreenZoomLevel <= 1) {
+                // Fit mode - center the image
+                fullscreenPosX = 0;
+                fullscreenPosY = 0;
+                
+                const containerRect = container.getBoundingClientRect();
+                const imageWidth = fullscreenImage.naturalWidth || 1;
+                const imageHeight = fullscreenImage.naturalHeight || 1;
+                
+                // Calculate fit scale
+                const fitScale = Math.min(
+                    containerRect.width / imageWidth,
+                    containerRect.height / imageHeight
+                );
+                
+                const actualScale = fitScale * fullscreenZoomLevel;
+                const translateX = (containerRect.width - imageWidth * actualScale) / 2;
+                const translateY = (containerRect.height - imageHeight * actualScale) / 2;
+                
+                fullscreenImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${actualScale})`;
+            } else {
+                // Zoomed in mode
+                fullscreenImage.style.transform = `translate(${fullscreenPosX}px, ${fullscreenPosY}px) scale(${fullscreenZoomLevel})`;
+            }
+        }
+        
+        function updatePanIndicator() {
+            const panIndicator = document.getElementById('panIndicator');
+            if (singleZoomLevel > 1) {
+                panIndicator.style.display = 'block';
+                panIndicator.textContent = `Pan: ${Math.round(singlePosX)},${Math.round(singlePosY)}`;
+            } else {
+                panIndicator.style.display = 'none';
+            }
         }
         
         function zoomIn() {
-            singleZoomLevel = Math.min(10, singleZoomLevel + 0.5);
+            singleZoomLevel = Math.min(10, singleZoomLevel * 1.2);
             updateZoomControls();
-            updateSingleImageZoom();
+            updateSingleImageTransform();
         }
         
         function zoomOut() {
-            singleZoomLevel = Math.max(1, singleZoomLevel - 0.5);
+            singleZoomLevel = Math.max(0.1, singleZoomLevel / 1.2);
             updateZoomControls();
-            updateSingleImageZoom();
+            updateSingleImageTransform();
         }
         
         function updateZoomControls() {
-            document.getElementById('zoomSlider').value = singleZoomLevel;
-            document.getElementById('zoomSliderValue').textContent = `${singleZoomLevel.toFixed(1)}x`;
-            document.getElementById('zoomIndicator').textContent = `${Math.round(singleZoomLevel * 100)}%`;
+            const zoomSlider = document.getElementById('zoomSlider');
+            const zoomSliderValue = document.getElementById('zoomSliderValue');
+            const zoomIndicator = document.getElementById('zoomIndicator');
+            
+            zoomSlider.value = singleZoomLevel;
+            
+            if (singleZoomLevel <= 1) {
+                zoomSliderValue.textContent = 'Fit';
+                zoomIndicator.textContent = 'Fit';
+            } else {
+                zoomSliderValue.textContent = `${singleZoomLevel.toFixed(1)}x`;
+                zoomIndicator.textContent = `${Math.round(singleZoomLevel * 100)}%`;
+            }
         }
         
         function resetSingleZoom() {
             singleZoomLevel = 1;
-            singlePanX = 0;
-            singlePanY = 0;
+            singlePosX = 0;
+            singlePosY = 0;
             updateZoomControls();
-            updateSingleImageZoom();
+            updateSingleImageTransform();
         }
         
         function resetFullscreenZoom() {
             fullscreenZoomLevel = 1;
-            fullscreenPanX = 0;
-            fullscreenPanY = 0;
-            updateFullscreenZoom();
+            fullscreenPosX = 0;
+            fullscreenPosY = 0;
+            updateFullscreenTransform();
         }
         
         function openFilePicker() {
@@ -1575,8 +1646,10 @@
             
             // Update fullscreen image with high resolution
             const fullscreenImage = document.getElementById('fullscreen-image');
-            // Use the working canvas for better quality
             fullscreenImage.src = workingCanvas.toDataURL();
+            
+            // Force a reflow to ensure dimensions are calculated
+            setTimeout(updateFullscreenTransform, 100);
         }
         
         function exitFullscreen() {
@@ -1589,8 +1662,12 @@
         
         function updateSingleImageView() {
             const singleImage = document.getElementById('singleImageView');
-            // Use the working canvas for better quality in single view
             singleImage.src = workingCanvas.toDataURL();
+            
+            // After image loads, update the transform
+            singleImage.onload = function() {
+                updateSingleImageTransform();
+            };
         }
         
         function handleImageUpload(e) {
@@ -1628,7 +1705,7 @@
         }
         
         function processImageLoad() {
-            // Set display canvas dimensions (optimized for mobile)
+            // Set display canvas dimensions
             const maxDisplayDimension = Math.min(1024, Math.min(window.innerWidth, window.innerHeight) - 100);
             const displayScale = Math.min(
                 maxDisplayDimension / originalImage.width,
@@ -1638,12 +1715,12 @@
             originalCanvas.width = outputCanvas.width = Math.floor(originalImage.width * displayScale);
             originalCanvas.height = outputCanvas.height = Math.floor(originalImage.height * displayScale);
             
-            // Set working canvas to higher resolution for better zoom quality
-            const maxWorkingDimension = 2048; // Higher resolution for better zoom
+            // Set working canvas to higher resolution
+            const maxWorkingDimension = 2048;
             const workingScaleFactor = Math.min(
                 maxWorkingDimension / originalImage.width,
                 maxWorkingDimension / originalImage.height,
-                2 // Maximum 2x scale
+                2
             );
             
             workingCanvas.width = Math.floor(originalImage.width * workingScaleFactor);
@@ -1656,7 +1733,7 @@
             outputCtx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
             workingCtx.drawImage(originalImage, 0, 0, workingCanvas.width, workingCanvas.height);
             
-            // Show single image view by default with high resolution
+            // Show single image view
             updateSingleImageView();
             
             // Update upload area text
@@ -1665,6 +1742,9 @@
             
             // Update export modal with original size
             updateExportSizeDisplay();
+            
+            // Reset zoom to fit
+            resetSingleZoom();
         }
         
         function updateSliderView() {
@@ -1694,10 +1774,10 @@
             const blueShift = parseFloat(document.getElementById('blueShift').value);
             const strength = parseFloat(document.getElementById('strength').value) / 100;
             
-            // Apply to display canvas (lower resolution for quick preview)
+            // Apply to display canvas
             applyCorrectionToCanvas(outputCanvas, outputCtx, redShift, greenShift, blueShift, strength, 1);
             
-            // Apply to working canvas (higher resolution for zoom)
+            // Apply to working canvas
             applyCorrectionToCanvas(workingCanvas, workingCtx, redShift, greenShift, blueShift, strength, 
                 workingCanvas.width / originalImage.width);
             
